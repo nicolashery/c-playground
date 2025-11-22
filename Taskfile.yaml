@@ -63,17 +63,15 @@ tasks:
     desc: Run clang-format
     cmds:
       - |
-        clang-format -i \
-          bean/*.c \
-          snake/*.c
+        git ls-files '*.c' '*.h' | xargs clang-format -i
 
   lint:
     desc: Run clang-tidy
     # Ensure compile_commands.json exists
     deps: [configure]
     cmds:
+      # macOS only: --extra-arg to help clang-tidy find system headers
       - |
-        clang-tidy \
-          bean/*.c \
-          snake/*.c \
+        git ls-files '*.c' '*.h' | xargs clang-tidy \
+          --extra-arg=-isysroot --extra-arg=$(xcrun --show-sdk-path) \
           -p {{.BUILD_DIR}}

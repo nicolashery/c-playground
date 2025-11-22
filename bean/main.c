@@ -52,12 +52,12 @@ Scanner scanner_create(char *buffer, size_t size) {
     };
 }
 
-bool is_eof(Scanner *s, char *p) {
-    return (*p == '\0' || p >= (s->start + s->size));
+bool is_eof(Scanner *s, const char *p) {
+    return (*p == '\0' || p >= (s->start + s->size)) != 0;
 }
 
 bool is_whitespace(char c) {
-    return isspace(c);
+    return isspace(c) != 0;
 }
 
 bool is_newline(char c) {
@@ -215,6 +215,7 @@ int main(int argc, char *argv[]) {
     }
 
     struct timespec start_time;
+    // NOLINTNEXTLINE(misc-include-cleaner)
     clock_gettime(CLOCK_MONOTONIC, &start_time);
 
     char *ledger_path = argv[1];
@@ -224,23 +225,30 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    fseek(ledger_file, 0, SEEK_END);
+    if (fseek(ledger_file, 0, SEEK_END) != 0) {
+        printf("Error seeking to end of file: %s\n", ledger_path);
+        (void)fclose(ledger_file);
+        return EXIT_FAILURE;
+    }
     long fledger_size = ftell(ledger_file);
     if (fledger_size < 0) {
         printf("Error reading size of file: %s\n", ledger_path);
-        fclose(ledger_file);
+        (void)fclose(ledger_file);
         return EXIT_FAILURE;
     }
     size_t ledger_size = (size_t)fledger_size;
-    rewind(ledger_file);
+    if (fseek(ledger_file, 0, SEEK_SET) != 0) {
+        printf("Error seeking to beginning of file: %s\n", ledger_path);
+        (void)fclose(ledger_file);
+        return EXIT_FAILURE;
+    }
     printf("[debug] Ledger file size (bytes): %ld\n", ledger_size);
 
-    size_t null_terminator_size = 1;
-    char *ledger_buffer = malloc(ledger_size + null_terminator_size);
+    size_t buffer_capacity = ledger_size + 1;
+    char *ledger_buffer = malloc(buffer_capacity);
     if (!ledger_buffer) {
-        printf("Error allocating memory for reading ledger (bytes): %ld\n",
-               ledger_size + null_terminator_size);
-        fclose(ledger_file);
+        printf("Error allocating memory for reading ledger (bytes): %ld\n", buffer_capacity);
+        (void)fclose(ledger_file);
         return EXIT_FAILURE;
     }
 
@@ -256,9 +264,11 @@ int main(int argc, char *argv[]) {
         }
 
         free(ledger_buffer);
-        fclose(ledger_file);
+        (void)fclose(ledger_file);
         return EXIT_FAILURE;
     }
+    // buffer_capacity = ledger_size + 1, so this is safe
+    // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound)
     ledger_buffer[ledger_size] = '\0';
 
     int line_count = 0;
@@ -285,7 +295,10 @@ int main(int argc, char *argv[]) {
     printf("[debug] Processing took: %.3f ms\n", elapsed_ms);
 
     free(ledger_buffer);
-    fclose(ledger_file);
+    if (fclose(ledger_file) != 0) {
+        printf("Error closing file\n");
+        return EXIT_FAILURE;
+    }
 
     return EXIT_SUCCESS;
 }
