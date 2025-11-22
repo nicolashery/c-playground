@@ -46,8 +46,10 @@ tasks:
   run:bean:
     desc: Run Bean
     deps: [bean]
+    vars:
+      LEDGER_PATH: bean/data/simple.bean
     cmds:
-      - ./{{.BUILD_DIR}}/bean/bean
+      - ./{{.BUILD_DIR}}/bean/bean {{.LEDGER_PATH}}
 
   run:snake:
     desc: Run Snake
