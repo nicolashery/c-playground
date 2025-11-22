@@ -1,0 +1,22 @@
+# C style guidelines
+
+- Base style: LLVM, with small tweaks
+- Indentation: 4 spaces, no tabs
+- Braces: K&R / attached (`if (...) {`)
+- Pointers: star binds to the variable (`void *ptr`)
+- Naming:
+  - functions/variables/params: `snake_case`
+  - typedef’d types/structs/enums: `Capital_Snake_Case`
+  - macros: `UPPER_CASE`
+- Struct typedefs:
+  - prefer `typedef struct { ... } Custom_Type;`
+  - use tagged structs only for forward-decls
+- One statement per line; no single-line `if/for/while` bodies
+- Line length: 100 characters
+- Function calls and definitions do not "bin-pack":
+  - arguments and parameters are split one-per-line if they don't fit
+- Language level: C23 (`-std=c23`).
+- Tooling:
+  - `clang-format` enforces formatting
+  - `clang-tidy` enforces naming/bugprone/readability
+  - CMake generates `compile_commands.json` for clangd
