@@ -1,4 +1,4 @@
-# C style guidelines
+# C style conventions
 
 - Base style: LLVM, with small tweaks
 - Indentation: 4 spaces, no tabs
