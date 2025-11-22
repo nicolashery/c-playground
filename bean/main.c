@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -52,10 +53,7 @@ Scanner scanner_create(char *buffer, size_t size) {
 }
 
 bool is_eof(Scanner *s, char *p) {
-    return (
-        *p == '\0' ||
-        p >= (s->start + s->size)
-    );
+    return (*p == '\0' || p >= (s->start + s->size));
 }
 
 bool is_whitespace(char c) {
@@ -121,7 +119,7 @@ bool token_date(Scanner *s, Token *t) {
     }
     peek++;
     t->type = TOKEN_DATE;
-    t->length = peek - t->start;
+    t->length = (size_t)(peek - t->start);
 
     s->current = peek;
 
@@ -162,7 +160,7 @@ bool token_number(Scanner *s, Token *t) {
     }
 
     t->type = TOKEN_NUMBER;
-    t->length = peek - t->start;
+    t->length = (size_t)(peek - t->start);
 
     s->current = peek;
 
@@ -233,14 +231,15 @@ int main(int argc, char *argv[]) {
         fclose(ledger_file);
         return EXIT_FAILURE;
     }
-    size_t ledger_size = (size_t) fledger_size;
+    size_t ledger_size = (size_t)fledger_size;
     rewind(ledger_file);
     printf("[debug] Ledger file size (bytes): %ld\n", ledger_size);
 
     size_t null_terminator_size = 1;
     char *ledger_buffer = malloc(ledger_size + null_terminator_size);
     if (!ledger_buffer) {
-        printf("Error allocating memory for reading ledger (bytes): %ld\n", ledger_size + null_terminator_size);
+        printf("Error allocating memory for reading ledger (bytes): %ld\n",
+               ledger_size + null_terminator_size);
         fclose(ledger_file);
         return EXIT_FAILURE;
     }
@@ -248,7 +247,10 @@ int main(int argc, char *argv[]) {
     size_t bytes_read = fread(ledger_buffer, 1, ledger_size, ledger_file);
     if (bytes_read != ledger_size) {
         if (feof(ledger_file)) {
-            printf("Error reached end-of-file before reading %ld bytes from file: %s\n", ledger_size, ledger_path);
+            printf("Error reached end-of-file before reading %ld bytes from "
+                   "file: %s\n",
+                   ledger_size,
+                   ledger_path);
         } else if (ferror(ledger_file)) {
             printf("Error reading file: %s\n", ledger_path);
         }
@@ -278,8 +280,8 @@ int main(int argc, char *argv[]) {
 
     struct timespec end_time;
     clock_gettime(CLOCK_MONOTONIC, &end_time);
-    double elapsed_ms = (end_time.tv_sec - start_time.tv_sec) * 1.0e3 +
-                        (end_time.tv_nsec - start_time.tv_nsec) / 1.0e6;
+    double elapsed_ms = (double)(end_time.tv_sec - start_time.tv_sec) * 1.0e3 +
+                        (double)(end_time.tv_nsec - start_time.tv_nsec) / 1.0e6;
     printf("[debug] Processing took: %.3f ms\n", elapsed_ms);
 
     free(ledger_buffer);

@@ -1,0 +1,79 @@
+version: "3"
+
+vars:
+  BUILD_DIR: build
+
+tasks:
+  # --------------------------------------------------
+  # Setup
+  # --------------------------------------------------
+
+  configure:
+    desc: Configure CMake build directory
+    cmds:
+      - cmake -S . -B {{.BUILD_DIR}}
+      # clangd looks for compile_commands.json in root directory
+      - ln -sf {{.BUILD_DIR}}/compile_commands.json ./compile_commands.json
+
+  clean:
+    desc: Remove build artifacts
+    cmds:
+      - rm -rf {{.BUILD_DIR}} compile_commands.json
+
+  # --------------------------------------------------
+  # Build
+  # --------------------------------------------------
+
+  build:
+    desc: Build everything
+    cmds:
+      - cmake --build {{.BUILD_DIR}}
+
+  bean:
+    desc: Build Bean
+    cmds:
+      - cmake --build {{.BUILD_DIR}} --target bean
+
+  snake:
+    desc: Build Snake
+    cmds:
+      - cmake --build {{.BUILD_DIR}} --target snake
+
+  # --------------------------------------------------
+  # Run
+  # --------------------------------------------------
+
+  run:bean:
+    desc: Run Bean
+    deps: [bean]
+    cmds:
+      - ./{{.BUILD_DIR}}/bean/bean
+
+  run:snake:
+    desc: Run Snake
+    deps: [snake]
+    cmds:
+      - ./{{.BUILD_DIR}}/snake/snake
+
+  # --------------------------------------------------
+  # Tools
+  # --------------------------------------------------
+
+  format:
+    desc: Run clang-format
+    cmds:
+      - |
+        clang-format -i \
+          bean/*.c \
+          snake/*.c
+
+  lint:
+    desc: Run clang-tidy
+    # Ensure compile_commands.json exists
+    deps: [configure]
+    cmds:
+      - |
+        clang-tidy \
+          bean/*.c \
+          snake/*.c \
+          -p {{.BUILD_DIR}}
