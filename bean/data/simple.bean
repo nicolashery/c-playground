@@ -7,5 +7,5 @@
   Equity:OpeningBalances
 
 2014-01-05 * "Groceries"
-  Expenses:Food              45.12 USD
+  Expenses:Food              -45.12 USD
   Assets:Checking

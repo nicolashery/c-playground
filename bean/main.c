@@ -1,6 +1,214 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
+
+#define MAX_TOKEN_LENGTH 256
+
+typedef enum {
+    TOKEN_INVALID,
+    TOKEN_DATE,
+    TOKEN_NUMBER,
+    TOKEN_DIRECTIVE,
+    TOKEN_EOF,
+} Token_Type;
+
+const char *token_type_names[5] = {
+    [TOKEN_INVALID] = "INVALID",
+    [TOKEN_DATE] = "DATE",
+    [TOKEN_NUMBER] = "TOKEN_NUMBER",
+    [TOKEN_DIRECTIVE] = "DIRECTIVE",
+    [TOKEN_EOF] = "EOF",
+};
+
+typedef struct {
+    Token_Type type;
+    char *start;
+    size_t length;
+    size_t line;
+} Token;
+
+void debug_print_token(Token token) {
+    char token_text[MAX_TOKEN_LENGTH] = {};
+    memcpy(token_text, token.start, token.length);
+    printf("[%ld] %s \"%s\"\n", token.line, token_type_names[token.type], token_text);
+}
+
+typedef struct {
+    char *start;
+    size_t size;
+    char *current;
+    size_t line;
+} Scanner;
+
+Scanner scanner_create(char *buffer, size_t size) {
+    return (Scanner){
+        .start = buffer,
+        .size = size,
+        .current = buffer,
+        .line = 1,
+    };
+}
+
+bool is_eof(Scanner *s, char *p) {
+    return (
+        *p == '\0' ||
+        p >= (s->start + s->size)
+    );
+}
+
+bool is_whitespace(char c) {
+    return isspace(c);
+}
+
+bool is_newline(char c) {
+    return (c == '\n');
+}
+
+void scanner_skip_whitespace(Scanner *s) {
+    while (!is_eof(s, s->current)) {
+        char c = *s->current;
+        if (is_newline(c)) {
+            s->line++;
+        }
+
+        if (is_whitespace(c)) {
+            s->current++;
+            continue;
+        }
+
+        break;
+    }
+}
+
+bool token_date(Scanner *s, Token *t) {
+    char *peek = s->current;
+    // Dates can't start with 0
+    if (*peek == '0') {
+        return false;
+    }
+    // Consume year (YYYY)
+    for (int i = 0; i < 3; ++i) {
+        peek++;
+        if (!isdigit(*peek)) {
+            return false;
+        }
+    }
+    // Consume separator (-)
+    peek++;
+    if (*peek != '-') {
+        return false;
+    }
+    // Consume month (MM)
+    for (int i = 0; i < 2; ++i) {
+        peek++;
+        if (!isdigit(*peek)) {
+            return false;
+        }
+    }
+    // Consume separator (-)
+    peek++;
+    if (*peek != '-') {
+        return false;
+    }
+    // Consume day (DD)
+    for (int i = 0; i < 2; ++i) {
+        peek++;
+        if (!isdigit(*peek)) {
+            return false;
+        }
+    }
+    peek++;
+    t->type = TOKEN_DATE;
+    t->length = peek - t->start;
+
+    s->current = peek;
+
+    return true;
+}
+
+bool token_number(Scanner *s, Token *t) {
+    char *peek = s->current;
+
+    // Consume optional negative sign (-)
+    if (*peek == '-') {
+        peek++;
+    }
+
+    // At least one digit
+    if (!isdigit(*peek)) {
+        return false;
+    }
+    peek++;
+
+    // Consume rest of digits
+    while (!is_eof(s, peek) && isdigit(*peek)) {
+        peek++;
+    }
+
+    // Optional decimal point (.)
+    if (!is_eof(s, peek) && *peek == '.') {
+        peek++;
+        // At least one digit after decimal point
+        if (!isdigit(*peek)) {
+            return false;
+        }
+        peek++;
+        // Consume rest of digits after decimal point
+        while (!is_eof(s, peek) && isdigit(*peek)) {
+            peek++;
+        }
+    }
+
+    t->type = TOKEN_NUMBER;
+    t->length = peek - t->start;
+
+    s->current = peek;
+
+    return true;
+}
+
+bool token_next(Scanner *s, Token *t) {
+    scanner_skip_whitespace(s);
+
+    t->start = s->current;
+    t->length = 0;
+    t->line = s->line;
+
+    // End-of-file
+    if (is_eof(s, s->current)) {
+        t->type = TOKEN_EOF;
+        return false;
+    }
+
+    char c = *s->current;
+    if (isdigit(c)) {
+        if (token_date(s, t)) {
+            return true;
+        }
+
+        if (token_number(s, t)) {
+            return true;
+        }
+
+        t->type = TOKEN_INVALID;
+        return false;
+    }
+
+    if (c == '-') {
+        if (token_number(s, t)) {
+            return true;
+        }
+
+        t->type = TOKEN_INVALID;
+        return false;
+    }
+
+    // TODO: other tokens
+    s->current++;
+    return true;
+}
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
@@ -25,7 +233,7 @@ int main(int argc, char *argv[]) {
         fclose(ledger_file);
         return EXIT_FAILURE;
     }
-    size_t ledger_size = (size_t)fledger_size;
+    size_t ledger_size = (size_t) fledger_size;
     rewind(ledger_file);
     printf("[debug] Ledger file size (bytes): %ld\n", ledger_size);
 
@@ -59,10 +267,19 @@ int main(int argc, char *argv[]) {
     }
     printf("[debug] Ledger file size (lines): %d\n", line_count);
 
+    Scanner scanner = scanner_create(ledger_buffer, ledger_size);
+    for (;;) {
+        Token token = {0};
+        if (!token_next(&scanner, &token)) {
+            break;
+        }
+        debug_print_token(token);
+    }
+
     struct timespec end_time;
     clock_gettime(CLOCK_MONOTONIC, &end_time);
-    double elapsed_ms = (end_time.tv_sec - start_time.tv_sec)*1.0e3 +
-        (end_time.tv_nsec - start_time.tv_nsec)/1.0e6;
+    double elapsed_ms = (end_time.tv_sec - start_time.tv_sec) * 1.0e3 +
+                        (end_time.tv_nsec - start_time.tv_nsec) / 1.0e6;
     printf("[debug] Processing took: %.3f ms\n", elapsed_ms);
 
     free(ledger_buffer);
