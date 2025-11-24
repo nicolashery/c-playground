@@ -1,9 +1,8 @@
-cmake_minimum_required(VERSION 3.31)
-project(bean C)
+set(BEAN_SOURCES
+    main.c
+)
 
-add_compile_options(-Wall -Wextra -pedantic -Werror)
-
-add_executable(bean main.c)
+add_executable(bean ${BEAN_SOURCES})
 
 add_custom_command(
         TARGET bean POST_BUILD

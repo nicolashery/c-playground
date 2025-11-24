@@ -34,6 +34,8 @@ endif()
 option(BUILD_BEAN "Build bean" ON)
 option(BUILD_SNAKE "Build snake" ON)
 
+add_subdirectory(libs/math_lib)
+
 if(BUILD_BEAN)
     add_subdirectory(bean)
 endif()
