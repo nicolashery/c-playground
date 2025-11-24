@@ -1,11 +1,11 @@
-#include <stdio.h>
+#include "foo.h"
 
-typedef struct {
-    int count;
-    char *name;
-} Some_Struct;
+#include <stdio.h>
 
 int main(void) {
     char *program_name = "snake";
-    printf("Hello, %s!", program_name);
+    Foo_Message *msg = foo_new(program_name);
+    for (int i = 0; i < 10; i++) {
+        foo_print(msg);
+    }
 }
