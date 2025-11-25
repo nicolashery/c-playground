@@ -46,6 +46,27 @@ add_library(stb INTERFACE)
 # Mark as SYSTEM so they don't generate compiler warnings
 target_include_directories(stb SYSTEM INTERFACE ${stb_SOURCE_DIR})
 
+include(FetchContent)
+
+set(RAYLIB_VERSION 5.5) # 2024-11-18
+
+FetchContent_Declare(
+    raylib
+    DOWNLOAD_EXTRACT_TIMESTAMP OFF
+    URL https://github.com/raysan5/raylib/archive/refs/tags/${RAYLIB_VERSION}.tar.gz
+    # Uncomment to use pre-built version installed via `brew install raylib`
+    # FIND_PACKAGE_ARGS
+)
+
+FetchContent_MakeAvailable(raylib)
+
+# Suppress warnings from third-party code
+# (that are not single-header file libs)
+target_compile_options(raylib PRIVATE -w)
+if(TARGET glfw)
+    target_compile_options(glfw PRIVATE -w)
+endif()
+
 option(BUILD_BEAN "Build bean" ON)
 option(BUILD_SNAKE "Build snake" ON)
 

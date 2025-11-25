@@ -29,12 +29,12 @@ tasks:
     cmds:
       - cmake --build {{.BUILD_DIR}}
 
-  bean:
+  build:bean:
     desc: Build Bean
     cmds:
       - cmake --build {{.BUILD_DIR}} --target bean
 
-  snake:
+  build:snake:
     desc: Build Snake
     cmds:
       - cmake --build {{.BUILD_DIR}} --target snake
@@ -45,7 +45,7 @@ tasks:
 
   run:bean:
     desc: Run Bean
-    deps: [bean]
+    deps: [build:bean]
     vars:
       LEDGER_PATH: bean/data/simple.bean
     cmds:
@@ -53,7 +53,7 @@ tasks:
 
   run:snake:
     desc: Run Snake
-    deps: [snake]
+    deps: [build:snake]
     cmds:
       - ./{{.BUILD_DIR}}/snake/snake
 
