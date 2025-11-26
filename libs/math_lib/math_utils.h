@@ -2,12 +2,12 @@
 #define MATH_UTILS_H
 
 typedef struct {
-    double x;
-    double y;
+    float x;
+    float y;
 } Point_2D;
 
-double add_double(double a, double b);
+float add_float(float a, float b);
 
-double distance_from_origin(Point_2D point);
+float distance_from_origin(Point_2D point);
 
 #endif

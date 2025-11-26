@@ -2,11 +2,11 @@
 
 #include <math.h>
 
-double add_double(double a, double b) {
+float add_float(float a, float b) {
     return a + b;
 }
 
-double distance_from_origin(Point_2D point) {
-    double squared = point.x * point.x + point.y * point.y;
-    return sqrt(squared);
+float distance_from_origin(Point_2D point) {
+    float squared = point.x * point.x + point.y * point.y;
+    return sqrtf(squared);
 }

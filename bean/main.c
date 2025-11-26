@@ -215,7 +215,6 @@ int main(int argc, char *argv[]) {
     }
 
     struct timespec start_time;
-    // NOLINTNEXTLINE(misc-include-cleaner)
     clock_gettime(CLOCK_MONOTONIC, &start_time);
 
     char *ledger_path = argv[1];

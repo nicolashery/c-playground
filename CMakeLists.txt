@@ -67,6 +67,20 @@ if(TARGET glfw)
     target_compile_options(glfw PRIVATE -w)
 endif()
 
+FetchContent_Declare(
+    unity
+    GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
+    GIT_TAG v2.6.0 # 2025-01-01
+)
+
+FetchContent_MakeAvailable(unity)
+
+# Suppress warnings from third-party code
+target_compile_options(unity PRIVATE -w)
+
+# Enable CTest (provides BUILD_TESTING option and calls enable_testing())
+include(CTest)
+
 option(BUILD_BEAN "Build bean" ON)
 option(BUILD_SNAKE "Build snake" ON)
 

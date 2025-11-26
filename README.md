@@ -62,6 +62,12 @@ Lint using `clang-tidy`:
 task lint
 ```
 
+Run tests:
+
+```bash
+task test
+```
+
 For all available commands see [`Taskfile.yaml`](`Taskfile.yaml`) or run `task` in the terminal.
 
 ## Conventions
