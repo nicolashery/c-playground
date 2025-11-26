@@ -9,12 +9,11 @@ target_include_directories(math_lib PUBLIC
 )
 
 if(BUILD_TESTING)
-    set(MATH_LIB_TESTS
-        test_math_utils.c
-    )
+    add_executable(test_math_utils test_math_utils.c)
+    target_link_libraries(test_math_utils PRIVATE math_lib unity)
+    add_test(NAME math_utils_tests COMMAND test_math_utils)
 
-    add_executable(test_math_lib ${MATH_LIB_TESTS})
-    target_link_libraries(test_math_lib PRIVATE math_lib unity)
-
-    add_test(NAME math_lib_tests COMMAND test_math_lib)
+    add_executable(test_foo test_foo.c)
+    target_link_libraries(test_foo PRIVATE math_lib unity)
+    add_test(NAME foo_tests COMMAND test_foo)
 endif()

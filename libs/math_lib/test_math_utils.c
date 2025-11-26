@@ -1,6 +1,12 @@
 #include "math_utils.h"
 #include "unity.h"
 
+void setUp(void) {
+}
+
+void tearDown(void) {
+}
+
 void test_add_float(void) {
     float result1 = add_float(2.0F, 3.0F);
     TEST_ASSERT_EQUAL_FLOAT(5.0F, result1);

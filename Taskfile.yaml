@@ -63,15 +63,17 @@ tasks:
 
   test:
     desc: Run all tests
+    deps: [build]
     cmds:
-      - cmake --build {{.BUILD_DIR}} --target test_math_lib
       - cd {{.BUILD_DIR}} && ctest --output-on-failure
 
   test:math_lib:
     desc: Run math_lib tests
     cmds:
-      - cmake --build {{.BUILD_DIR}} --target test_math_lib
-      - ./{{.BUILD_DIR}}/libs/math_lib/test_math_lib
+      - cmake --build {{.BUILD_DIR}} --target test_math_utils
+      - cmake --build {{.BUILD_DIR}} --target test_foo
+      - ./{{.BUILD_DIR}}/libs/math_lib/test_math_utils
+      - ./{{.BUILD_DIR}}/libs/math_lib/test_foo
 
   # --------------------------------------------------
   # Tools
