@@ -13,7 +13,8 @@ Checks: >
   -readability-identifier-length,
   -readability-magic-numbers,
   -readability-avoid-const-params-in-decls,
-  -readability-math-missing-parentheses
+  -readability-math-missing-parentheses,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
 
 WarningsAsErrors: ""
 
@@ -36,3 +37,8 @@ CheckOptions:
   # Avoid reserved identifiers like __foo or _Foo
   - key: bugprone-reserved-identifier.AllowedIdentifiers
     value: ""
+
+  # Suppress false positive warnings about transitive includes
+  # (ex: on macOS <time.h> includes <_time.h> which contains the actual symbols)
+  - key: misc-include-cleaner.MissingIncludes
+    value: false

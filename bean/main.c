@@ -32,7 +32,7 @@ typedef struct {
 
 void debug_print_token(Token token) {
     char token_text[MAX_TOKEN_LENGTH] = {};
-    memcpy(token_text, token.start, token.length);
+    (void)snprintf(token_text, MAX_TOKEN_LENGTH, "%.*s", (int)token.length, token.start);
     printf("[%ld] %s \"%s\"\n", token.line, token_type_names[token.type], token_text);
 }
 
