@@ -44,10 +44,10 @@ tasks:
     cmds:
       - cmake --build {{.BUILD_DIR}} --target scratch
 
-  build:snake:
-    desc: Build Snake
+  build:dodge:
+    desc: Build Dodge
     cmds:
-      - cmake --build {{.BUILD_DIR}} --target snake
+      - cmake --build {{.BUILD_DIR}} --target dodge
 
   # --------------------------------------------------
   # Run
@@ -70,11 +70,11 @@ tasks:
     cmds:
       - ./{{.BUILD_DIR}}/scratch/scratch {{.STATS_PATH}}
 
-  run:snake:
-    desc: Run Snake
-    deps: [build:snake]
+  run:dodge:
+    desc: Run Dodge
+    deps: [build:dodge]
     cmds:
-      - ./{{.BUILD_DIR}}/snake/snake
+      - ./{{.BUILD_DIR}}/dodge/dodge
 
   # --------------------------------------------------
   # Test

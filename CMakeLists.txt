@@ -83,7 +83,7 @@ include(CTest)
 
 option(BUILD_BEAN "Build bean" ON)
 option(BUILD_SCRATCH "Build scratch" ON)
-option(BUILD_SNAKE "Build snake" ON)
+option(BUILD_DODGE "Build dodge" ON)
 
 add_subdirectory(libs/math_lib)
 
@@ -95,8 +95,8 @@ if(BUILD_SCRATCH)
     add_subdirectory(scratch)
 endif()
 
-if(BUILD_SNAKE)
-    add_subdirectory(snake)
+if(BUILD_DODGE)
+    add_subdirectory(dodge)
 endif()
 
 

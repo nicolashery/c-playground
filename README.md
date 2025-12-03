@@ -6,7 +6,7 @@ Repo with multiple small projects as I play around with C and learn low-level pr
 
 - `bean/`: Small CLI tool that parses a subset of [Beancount](https://github.com/beancount/beancount) plain-text accounting
 - `scratch/`: Scratch project to try out various things that don't warrant their own project
-- `snake/`: Snake game using Raylib
+- `dodge/`: Dodge the Blocks game using Raylib
 
 The `libs/` directory contains any shared libraries between projects:
 - `libs/math_utils/`: Example shared library, doesn't really do anything useful
