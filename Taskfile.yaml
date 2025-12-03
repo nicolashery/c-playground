@@ -3,6 +3,11 @@ version: "3"
 vars:
   BUILD_DIR: build
 
+# Suppress macOS malloc nano zone warning when using AddressSanitizer
+# (nano allocator conflicts with ASan's memory layout, but fallback is harmless)
+env:
+  MallocNanoZone: 0
+
 tasks:
   # --------------------------------------------------
   # Setup
