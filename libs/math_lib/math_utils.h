@@ -4,10 +4,10 @@
 typedef struct {
     float x;
     float y;
-} Point_2D;
+} Point2D;
 
 float add_float(float a, float b);
 
-float distance_from_origin(Point_2D point);
+float distance_from_origin(Point2D point);
 
 #endif

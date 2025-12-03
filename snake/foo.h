@@ -4,9 +4,9 @@
 typedef struct {
     int count;
     char *name;
-} Foo_Message;
+} FooMessage;
 
-Foo_Message *foo_new(char *name);
-void foo_print(Foo_Message *msg);
+FooMessage *foo_new(char *name);
+void foo_print(FooMessage *msg);
 
 #endif

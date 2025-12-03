@@ -10,10 +10,10 @@
 typedef struct {
     char *key;
     int value;
-} Int_Hash_Map;
+} IntHashMap;
 
 void demo_hash_map(void) {
-    Int_Hash_Map *map = nullptr;
+    IntHashMap *map = nullptr;
     sh_new_arena(map);
 
     shput(map, "foo", 1);
@@ -30,7 +30,7 @@ void demo_hash_map(void) {
 typedef struct {
     float radius;
     Vector2 position;
-} Circle_State;
+} CircleState;
 
 void demo_raylib(void) {
     const int screen_width = 800;
@@ -40,7 +40,7 @@ void demo_raylib(void) {
 
     SetTargetFPS(60);
 
-    Circle_State circle = {
+    CircleState circle = {
         .radius = 40.0F,
         .position =
             {
@@ -73,13 +73,13 @@ void demo_raylib(void) {
 
 int main(void) {
     char *program_name = "snake";
-    Foo_Message *msg = foo_new(program_name);
+    FooMessage *msg = foo_new(program_name);
     for (int i = 0; i < 10; i++) {
         foo_print(msg);
     }
     printf("\n");
 
-    double distance = distance_from_origin((Point_2D){
+    double distance = distance_from_origin((Point2D){
         .x = 10,
         .y = 20,
     });

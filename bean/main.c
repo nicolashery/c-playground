@@ -13,7 +13,7 @@ typedef enum {
     TOKEN_NUMBER,
     TOKEN_DIRECTIVE,
     TOKEN_EOF,
-} Token_Type;
+} TokenType;
 
 const char *token_type_names[5] = {
     [TOKEN_INVALID] = "INVALID",
@@ -24,7 +24,7 @@ const char *token_type_names[5] = {
 };
 
 typedef struct {
-    Token_Type type;
+    TokenType type;
     char *start;
     size_t length;
     size_t line;

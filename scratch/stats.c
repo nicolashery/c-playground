@@ -7,15 +7,15 @@ typedef struct {
     int *data;
     size_t size;
     size_t capacity;
-} Int_Array;
+} IntArray;
 
-Int_Array *int_array_create(size_t capacity) {
+IntArray *int_array_create(size_t capacity) {
     int *data = malloc(capacity * sizeof(int));
     if (data == nullptr) {
         return nullptr;
     }
 
-    Int_Array *arr = malloc(sizeof(Int_Array));
+    IntArray *arr = malloc(sizeof(IntArray));
     if (arr == nullptr) {
         free(data);
         return nullptr;
@@ -27,7 +27,7 @@ Int_Array *int_array_create(size_t capacity) {
     return arr;
 }
 
-void int_array_append(Int_Array *arr, int value) {
+void int_array_append(IntArray *arr, int value) {
     if (arr->size < arr->capacity) {
         arr->data[arr->size] = value;
         arr->size++;
@@ -37,26 +37,26 @@ void int_array_append(Int_Array *arr, int value) {
     size_t new_capacity = arr->capacity * 2;
     int *new_data = realloc(arr->data, new_capacity * sizeof(int));
     if (new_data == nullptr) {
-        printf("WARNING: Failed to realloc Int_Array with new capacity %zu, dropping value %d\n",
+        printf("WARNING: Failed to realloc IntArray with new capacity %zu, dropping value %d\n",
                new_capacity,
                value);
         return;
     }
 
     arr->data = new_data;
-    printf("DEBUG: Reallocated Int_Array with new capacity %zu\n", new_capacity);
+    printf("DEBUG: Reallocated IntArray with new capacity %zu\n", new_capacity);
 
     arr->data[arr->size] = value;
     arr->size++;
     arr->capacity = new_capacity;
 }
 
-void int_array_free(Int_Array *arr) {
+void int_array_free(IntArray *arr) {
     free(arr->data);
     free(arr);
 }
 
-int min(Int_Array *arr) {
+int min(IntArray *arr) {
     assert(arr->size > 0 && "Array must not be empty");
 
     int result = arr->data[0];
@@ -68,7 +68,7 @@ int min(Int_Array *arr) {
     return result;
 }
 
-int max(Int_Array *arr) {
+int max(IntArray *arr) {
     assert(arr->size > 0 && "Array must not be empty");
 
     int result = arr->data[0];
@@ -80,7 +80,7 @@ int max(Int_Array *arr) {
     return result;
 }
 
-double average(Int_Array *arr) {
+double average(IntArray *arr) {
     assert(arr->size > 0 && "Array must not be empty");
 
     int sum = 0;
@@ -105,9 +105,9 @@ int stats_main(int argc, char *argv[]) {
     }
 
     // Allocating small size (8 ints) on purpose to demonstrate reallocation
-    Int_Array *arr = int_array_create(8);
+    IntArray *arr = int_array_create(8);
     if (arr == nullptr) {
-        printf("ERROR: Failed to allocate Int_Array\n");
+        printf("ERROR: Failed to allocate IntArray\n");
         (void)fclose(file);
         return EXIT_FAILURE;
     }

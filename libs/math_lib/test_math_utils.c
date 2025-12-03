@@ -19,15 +19,15 @@ void test_add_float(void) {
 }
 
 void test_distance_from_origin(void) {
-    Point_2D point1 = {3.0F, 4.0F};
+    Point2D point1 = {3.0F, 4.0F};
     float result1 = distance_from_origin(point1);
     TEST_ASSERT_EQUAL_FLOAT(5.0F, result1);
 
-    Point_2D point2 = {0.0F, 0.0F};
+    Point2D point2 = {0.0F, 0.0F};
     float result2 = distance_from_origin(point2);
     TEST_ASSERT_EQUAL_FLOAT(0.0F, result2);
 
-    Point_2D point3 = {1.0F, 1.0F};
+    Point2D point3 = {1.0F, 1.0F};
     float result3 = distance_from_origin(point3);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 1.414F, result3);
 }
