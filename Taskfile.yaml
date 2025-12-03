@@ -34,6 +34,11 @@ tasks:
     cmds:
       - cmake --build {{.BUILD_DIR}} --target bean
 
+  build:scratch:
+    desc: Build Scratch
+    cmds:
+      - cmake --build {{.BUILD_DIR}} --target scratch
+
   build:snake:
     desc: Build Snake
     cmds:
@@ -48,8 +53,17 @@ tasks:
     deps: [build:bean]
     vars:
       LEDGER_PATH: bean/data/simple.bean
+      NUMBERS_PATH: bean/data/numbers.txt
     cmds:
-      - ./{{.BUILD_DIR}}/bean/bean {{.LEDGER_PATH}}
+      - ./{{.BUILD_DIR}}/bean/bean {{.NUMBERS_PATH}}
+
+  run:scratch:
+    desc: Run Scratch
+    deps: [build:scratch]
+    vars:
+      STATS_PATH: scratch/data/stats.txt
+    cmds:
+      - ./{{.BUILD_DIR}}/scratch/scratch {{.STATS_PATH}}
 
   run:snake:
     desc: Run Snake

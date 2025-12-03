@@ -82,12 +82,17 @@ target_compile_options(unity PRIVATE -w)
 include(CTest)
 
 option(BUILD_BEAN "Build bean" ON)
+option(BUILD_SCRATCH "Build scratch" ON)
 option(BUILD_SNAKE "Build snake" ON)
 
 add_subdirectory(libs/math_lib)
 
 if(BUILD_BEAN)
     add_subdirectory(bean)
+endif()
+
+if(BUILD_SCRATCH)
+    add_subdirectory(scratch)
 endif()
 
 if(BUILD_SNAKE)
