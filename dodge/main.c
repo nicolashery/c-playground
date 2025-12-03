@@ -1,42 +1,18 @@
-#include "foo.h"
-#include "math_utils.h"
 #include "raylib.h"
 
-#define STB_DS_IMPLEMENTATION
-#include "stb_ds.h"
-
 #include <stdio.h>
-
-typedef struct {
-    char *key;
-    int value;
-} IntHashMap;
-
-void demo_hash_map(void) {
-    IntHashMap *map = nullptr;
-    sh_new_arena(map);
-
-    shput(map, "foo", 1);
-    shput(map, "bar", 2);
-
-    int foo_value = shget(map, "foo");
-    int bar_value = shget(map, "bar");
-
-    printf("stb_ds demo: foo=%d, bar=%d\n", foo_value, bar_value);
-
-    shfree(map);
-}
+#include <stdlib.h>
 
 typedef struct {
     float radius;
     Vector2 position;
 } CircleState;
 
-void demo_raylib(void) {
+int main(void) {
     const int screen_width = 800;
     const int screen_height = 450;
 
-    InitWindow(screen_width, screen_height, "Snake");
+    InitWindow(screen_width, screen_height, "Dodge the Blocks");
 
     SetTargetFPS(60);
 
@@ -69,25 +45,6 @@ void demo_raylib(void) {
     }
 
     CloseWindow();
-}
 
-int main(void) {
-    char *program_name = "snake";
-    FooMessage *msg = foo_new(program_name);
-    for (int i = 0; i < 10; i++) {
-        foo_print(msg);
-    }
-    printf("\n");
-
-    double distance = distance_from_origin((Point2D){
-        .x = 10,
-        .y = 20,
-    });
-    printf("Distance: %.3f\n", distance);
-    printf("\n");
-
-    demo_hash_map();
-    printf("\n");
-
-    demo_raylib();
+    return EXIT_SUCCESS;
 }

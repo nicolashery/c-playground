@@ -1,3 +1,5 @@
+#include "foo.h"
+
 #include <ctype.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -206,6 +208,15 @@ bool token_next(Scanner *s, Token *t) {
     // TODO: other tokens
     s->current++;
     return true;
+}
+
+void demo_foo() {
+    char *program_name = "bean";
+    FooMessage *msg = foo_new(program_name);
+    for (int i = 0; i < 10; i++) {
+        foo_print(msg);
+    }
+    printf("\n");
 }
 
 int main(int argc, char *argv[]) {
