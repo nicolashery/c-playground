@@ -1,6 +1,5 @@
 #include "raylib.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 
 #define PLAYER_WIDTH 100
@@ -25,15 +24,24 @@ void game_state_reset(Player *player) {
     };
 }
 
+float clamp(float value, float min, float max) {
+    if (value < min) {
+        return min;
+    }
+
+    if (value > max) {
+        return max;
+    }
+
+    return value;
+}
+
 int main(void) {
     // Initialization
     //---------------------------------------------------------------------------------------------
-    const int screen_width = 800;
-    const int screen_height = 450;
+    InitWindow(800, 450, "Dodge the Blocks");
 
-    InitWindow(screen_width, screen_height, "Dodge the Blocks");
-
-    SetTargetFPS(120);
+    SetTargetFPS(60);
 
     // Game state
     GameScreen screen = TITLE;
@@ -54,10 +62,14 @@ int main(void) {
         } break;
         case GAMEPLAY: {
             if (IsKeyDown(KEY_RIGHT)) {
-                player.position.x += (float)PLAYER_SPEED * GetFrameTime();
+                player.position.x = clamp(player.position.x + (float)PLAYER_SPEED * GetFrameTime(),
+                                          0.0F,
+                                          (float)GetScreenWidth() - PLAYER_WIDTH);
             }
             if (IsKeyDown(KEY_LEFT)) {
-                player.position.x -= (float)PLAYER_SPEED * GetFrameTime();
+                player.position.x = clamp(player.position.x - (float)PLAYER_SPEED * GetFrameTime(),
+                                          0.0F,
+                                          (float)GetScreenWidth() - PLAYER_WIDTH);
             }
 
             if (IsKeyPressed(KEY_Q)) {
@@ -80,7 +92,7 @@ int main(void) {
         switch (screen) {
         case TITLE: {
             DrawText("Dodge the Blocks", 20, 20, 40, DARKGREEN);
-            char *start_text = "Press [ENTER] to start";
+            const char *start_text = "Press [ENTER] to start";
             DrawText(start_text,
                      GetScreenWidth() / 2 - MeasureText(start_text, 20) / 2,
                      GetScreenHeight() / 2 + 10,
@@ -98,7 +110,7 @@ int main(void) {
         } break;
         case ENDING: {
             DrawText("Game over!", 20, 20, 40, RED);
-            char *play_again_text = "Press [ENTER] to play again";
+            const char *play_again_text = "Press [ENTER] to play again";
             DrawText(play_again_text,
                      GetScreenWidth() / 2 - MeasureText(play_again_text, 20) / 2,
                      GetScreenHeight() / 2 + 10,
