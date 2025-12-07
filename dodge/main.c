@@ -3,9 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define PLAYER_SIZE_X 100
-#define PLAYER_SIZE_Y 60
-#define PLAYER_SPEED 4.0F
+#define PLAYER_WIDTH 100
+#define PLAYER_HEIGHT 60
+#define PLAYER_SPEED 240 // in pixels per second
 
 typedef enum {
     TITLE,
@@ -20,8 +20,8 @@ typedef struct {
 void game_state_reset(Player *player) {
     // Center at bottom of screen
     player->position = (Vector2){
-        .x = (float)GetScreenWidth() / 2 - (float)PLAYER_SIZE_X / 2,
-        .y = (float)GetScreenHeight() - PLAYER_SIZE_Y - 10,
+        .x = (float)GetScreenWidth() / 2 - (float)PLAYER_WIDTH / 2,
+        .y = (float)GetScreenHeight() - PLAYER_HEIGHT - 10,
     };
 }
 
@@ -33,7 +33,7 @@ int main(void) {
 
     InitWindow(screen_width, screen_height, "Dodge the Blocks");
 
-    SetTargetFPS(60);
+    SetTargetFPS(120);
 
     // Game state
     GameScreen screen = TITLE;
@@ -54,10 +54,10 @@ int main(void) {
         } break;
         case GAMEPLAY: {
             if (IsKeyDown(KEY_RIGHT)) {
-                player.position.x += PLAYER_SPEED;
+                player.position.x += (float)PLAYER_SPEED * GetFrameTime();
             }
             if (IsKeyDown(KEY_LEFT)) {
-                player.position.x -= PLAYER_SPEED;
+                player.position.x -= (float)PLAYER_SPEED * GetFrameTime();
             }
 
             if (IsKeyPressed(KEY_Q)) {
@@ -69,7 +69,7 @@ int main(void) {
                 screen = GAMEPLAY;
                 game_state_reset(&player);
             }
-        };
+        } break;
         }
 
         // Draw
@@ -89,10 +89,11 @@ int main(void) {
 
         } break;
         case GAMEPLAY: {
+            DrawFPS(GetScreenWidth() - 80, 10);
             DrawRectangle((int)player.position.x,
                           (int)player.position.y,
-                          PLAYER_SIZE_X,
-                          PLAYER_SIZE_Y,
+                          PLAYER_WIDTH,
+                          PLAYER_HEIGHT,
                           DARKBLUE);
         } break;
         case ENDING: {
@@ -103,7 +104,7 @@ int main(void) {
                      GetScreenHeight() / 2 + 10,
                      20,
                      DARKGRAY);
-        };
+        } break;
         }
 
         EndDrawing();
