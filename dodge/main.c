@@ -1,5 +1,6 @@
 #include "raylib.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 
 #define PLAYER_WIDTH 100
@@ -7,6 +8,9 @@
 #define PLAYER_SPEED 240 // in pixels per second
 
 #define BLOCK_SIZE 50
+#define BLOCK_SPEED 240
+#define MAX_BLOCKS 10
+#define SPAWN_INTERVAL 2.0F // seconds between spawns
 
 typedef enum {
     TITLE,
@@ -20,10 +24,10 @@ typedef struct {
 
 typedef struct {
     Vector2 position;
-    float speed;
+    bool active;
 } Block;
 
-void game_state_reset(Player *player, Block *block) {
+void game_state_reset(Player *player, Block *blocks, float *time_since_last_spawn) {
     // Center at bottom of screen
     player->position = (Vector2){
         .x = (float)GetScreenWidth() / 2 - (float)PLAYER_WIDTH / 2,
@@ -31,11 +35,13 @@ void game_state_reset(Player *player, Block *block) {
     };
 
     // Center at top of screen
-    block->position = (Vector2){
+    blocks[0].position = (Vector2){
         .x = (float)GetScreenWidth() / 2 - (float)BLOCK_SIZE / 2,
         .y = 10,
     };
-    block->speed = 300;
+    blocks[0].active = true;
+
+    *time_since_last_spawn = 0.0F;
 }
 
 float clamp(float value, float min, float max) {
@@ -76,11 +82,15 @@ int main(void) {
     SetTargetFPS(60);
 
     // Game state
-    GameScreen screen = TITLE;
+    GameScreen screen = GAMEPLAY;
 
     Player player = {0};
-    Block block = {0};
-    game_state_reset(&player, &block);
+    Block blocks[MAX_BLOCKS] = {0};
+    float time_since_last_spawn = 0.0F;
+    game_state_reset(&player, blocks, &time_since_last_spawn);
+
+    // For debugging
+    SetRandomSeed(123456);
 
     // Main game loop
     while (!WindowShouldClose()) {
@@ -94,6 +104,7 @@ int main(void) {
 
         } break;
         case GAMEPLAY: {
+            // Move player
             if (IsKeyDown(KEY_RIGHT)) {
                 player.position.x = clamp(player.position.x + (float)PLAYER_SPEED * GetFrameTime(),
                                           0.0F,
@@ -105,25 +116,61 @@ int main(void) {
                                           (float)GetScreenWidth() - PLAYER_WIDTH);
             }
 
+            // Quit gameplay
             if (IsKeyPressed(KEY_Q)) {
                 screen = ENDING;
             }
 
-            bool block_off_screen = (block.position.y > (float)GetScreenHeight());
-            if (block_off_screen) {
-                block.position.y = 10;
-            } else {
-                block.position.y += block.speed * GetFrameTime();
+            // Move blocks
+            for (size_t i = 0; i < MAX_BLOCKS; i++) {
+                Block *block = &blocks[i];
+                if (!block->active) {
+                    continue;
+                }
+
+                bool block_off_screen = (block->position.y > (float)GetScreenHeight());
+                if (block_off_screen) {
+                    block->active = false;
+                } else {
+                    block->position.y += BLOCK_SPEED * GetFrameTime();
+                }
+
+                if (CheckCollisionRecs(player_bounds(&player), block_bounds(block))) {
+                    screen = ENDING;
+                }
             }
 
-            if (CheckCollisionRecs(player_bounds(&player), block_bounds(&block))) {
-                screen = ENDING;
+            // Spawn blocks
+            time_since_last_spawn += GetFrameTime();
+            if (time_since_last_spawn > SPAWN_INTERVAL) {
+                time_since_last_spawn = 0.0F;
+
+                Block *block = nullptr;
+                for (size_t i = 0; i < MAX_BLOCKS; i++) {
+                    if (blocks[i].active) {
+                        continue;
+                    }
+
+                    block = &blocks[i];
+                }
+
+                if (block == nullptr) {
+                    printf("[WARNING] Could not find a free block to spawn, consider increasing "
+                           "MAX_BLOCKS (%d)",
+                           MAX_BLOCKS);
+                } else {
+                    block->position = (Vector2){
+                        .x = (float)GetRandomValue(0, GetScreenWidth() - BLOCK_SIZE),
+                        .y = 10,
+                    };
+                    block->active = true;
+                }
             }
         } break;
         case ENDING: {
             if (IsKeyPressed(KEY_ENTER)) {
                 screen = GAMEPLAY;
-                game_state_reset(&player, &block);
+                game_state_reset(&player, blocks, &time_since_last_spawn);
             }
         } break;
         }
@@ -151,8 +198,17 @@ int main(void) {
                           PLAYER_WIDTH,
                           PLAYER_HEIGHT,
                           DARKBLUE);
-            DrawRectangle(
-                (int)block.position.x, (int)block.position.y, BLOCK_SIZE, BLOCK_SIZE, MAROON);
+
+            for (size_t i = 0; i < MAX_BLOCKS; i++) {
+                Block *block = &blocks[i];
+                if (!block->active) {
+                    continue;
+                }
+
+                DrawRectangle(
+                    (int)block->position.x, (int)block->position.y, BLOCK_SIZE, BLOCK_SIZE, MAROON);
+            }
+
         } break;
         case ENDING: {
             DrawText("Game over!", 20, 20, 40, RED);
