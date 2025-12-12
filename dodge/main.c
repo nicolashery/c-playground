@@ -17,6 +17,8 @@
 #define LEVEL_CHANGE_INTERVAL 5.0F // seconds of survival between levels
 #define MAX_LEVEL 10
 
+#define LEVEL_UP_EFFECT_DURATION 2.0F // seconds
+
 #define TEXT_BUFFER_LENGTH 1024
 
 #define DEBUG_INVINCIBLE false
@@ -45,6 +47,8 @@ typedef struct {
     int level;
     float block_speed;
     float spawn_interval;
+    bool level_up_effect_active;
+    float level_up_effect_timer;
 } GameState;
 
 void game_state_reset(GameState *state) {
@@ -71,6 +75,9 @@ void game_state_reset(GameState *state) {
     state->level = 1;
     state->block_speed = BLOCK_SPEED_INITIAL;
     state->spawn_interval = SPAWN_INTERVAL_INITIAL;
+
+    state->level_up_effect_active = false;
+    state->level_up_effect_timer = 0.0F;
 }
 
 float clamp(float value, float min, float max) {
@@ -191,6 +198,16 @@ int main(void) {
                 state.block_speed = state.block_speed * (1.0F + BLOCK_SPEED_LEVEL_INCREASE);
                 state.spawn_interval =
                     state.spawn_interval * (1.0F - SPAWN_INTERVAL_LEVEL_DECREASE);
+
+                state.level_up_effect_active = true;
+                state.level_up_effect_timer = LEVEL_UP_EFFECT_DURATION;
+            }
+            if (state.level_up_effect_active) {
+                state.level_up_effect_timer -= GetFrameTime();
+
+                if (state.level_up_effect_timer <= 0) {
+                    state.level_up_effect_active = false;
+                }
             }
 
             // Spawn blocks
@@ -238,20 +255,23 @@ int main(void) {
         switch (screen) {
         case TITLE: {
             const char *title_text = "Dodge the Blocks";
+            int title_font_size = 40;
             DrawText(title_text,
-                     GetScreenWidth() / 2 - MeasureText(title_text, 40) / 2,
-                     GetScreenHeight() / 2 - 40,
-                     40,
+                     GetScreenWidth() / 2 - MeasureText(title_text, title_font_size) / 2,
+                     GetScreenHeight() / 2 - title_font_size,
+                     title_font_size,
                      DARKGREEN);
             const char *start_text = "Press [ENTER] to start";
+            int start_font_size = 20;
             DrawText(start_text,
-                     GetScreenWidth() / 2 - MeasureText(start_text, 20) / 2,
+                     GetScreenWidth() / 2 - MeasureText(start_text, start_font_size) / 2,
                      GetScreenHeight() / 2 + 20,
-                     20,
+                     start_font_size,
                      DARKGRAY);
 
         } break;
         case GAMEPLAY: {
+            // Player
             Player *player = &state.player;
             DrawRectangle((int)player->position.x,
                           (int)player->position.y,
@@ -259,6 +279,7 @@ int main(void) {
                           PLAYER_HEIGHT,
                           DARKBLUE);
 
+            // Blocks
             for (size_t i = 0; i < MAX_BLOCKS; i++) {
                 Block *block = &state.blocks[i];
                 if (!block->active) {
@@ -269,12 +290,47 @@ int main(void) {
                     (int)block->position.x, (int)block->position.y, BLOCK_SIZE, BLOCK_SIZE, MAROON);
             }
 
+            // Score
             (void)snprintf(score_text_buffer, TEXT_BUFFER_LENGTH, "Score %d", state.score);
             DrawText(score_text_buffer, 20, 20, 30, VIOLET);
+
+            // Level indicator
             (void)snprintf(
                 level_text_buffer, TEXT_BUFFER_LENGTH, "Level %02d/%d", state.level, MAX_LEVEL);
-            DrawText(level_text_buffer, 20, 60, 20, BLUE);
+            int level_font_size = 20;
+            int level_text_x = 20;
+            int level_text_y = 60;
+            Color level_text_color = BLUE;
+            if (state.level_up_effect_active) {
+                if (state.level_up_effect_timer > LEVEL_UP_EFFECT_DURATION / 2) {
+                    level_text_color = WHITE;
+                } else {
+                    level_text_color = BLUE;
+                }
+            }
+            if (state.level_up_effect_active) {
+                int level_text_width = MeasureText(level_text_buffer, level_font_size);
+                int padding = 10;
+                DrawRectangle(level_text_x - padding,
+                              level_text_y - padding,
+                              level_text_width + 2 * padding,
+                              level_font_size + 2 * padding,
+                              Fade(BLUE, state.level_up_effect_timer / LEVEL_UP_EFFECT_DURATION));
+            }
+            DrawText(level_text_buffer, level_text_x, 60, level_font_size, level_text_color);
 
+            // Level up message
+            if (state.level_up_effect_active) {
+                const char *level_up_text = "LEVEL UP!";
+                int level_up_font_size = 40;
+                DrawText(level_up_text,
+                         GetScreenWidth() / 2 - MeasureText(level_up_text, level_up_font_size) / 2,
+                         GetScreenHeight() / 2 - level_up_font_size,
+                         level_up_font_size,
+                         Fade(BLUE, state.level_up_effect_timer / LEVEL_UP_EFFECT_DURATION));
+            }
+
+            // FPS
             DrawFPS(GetScreenWidth() - 100, 20);
         } break;
         case ENDING: {
@@ -285,16 +341,18 @@ int main(void) {
             DrawText(level_text_buffer, 20, 60, 20, BLUE);
 
             const char *game_over_text = "Game over!";
+            int game_over_font_size = 40;
             DrawText(game_over_text,
-                     GetScreenWidth() / 2 - MeasureText(game_over_text, 40) / 2,
-                     GetScreenHeight() / 2 - 40,
-                     40,
+                     GetScreenWidth() / 2 - MeasureText(game_over_text, game_over_font_size) / 2,
+                     GetScreenHeight() / 2 - game_over_font_size,
+                     game_over_font_size,
                      RED);
             const char *play_again_text = "Press [ENTER] to play again";
+            int play_again_font_size = 20;
             DrawText(play_again_text,
-                     GetScreenWidth() / 2 - MeasureText(play_again_text, 20) / 2,
+                     GetScreenWidth() / 2 - MeasureText(play_again_text, play_again_font_size) / 2,
                      GetScreenHeight() / 2 + 20,
-                     20,
+                     play_again_font_size,
                      DARKGRAY);
         } break;
         }
