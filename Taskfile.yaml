@@ -57,24 +57,23 @@ tasks:
     desc: Run Bean
     deps: [build:bean]
     vars:
-      LEDGER_PATH: bean/data/simple.bean
-      NUMBERS_PATH: bean/data/numbers.txt
+      LEDGER_PATH: data/simple.bean
     cmds:
-      - ./{{.BUILD_DIR}}/bean/bean {{.NUMBERS_PATH}}
+      - cd {{.BUILD_DIR}}/bean && ./bean {{.LEDGER_PATH}}
 
   run:scratch:
     desc: Run Scratch
     deps: [build:scratch]
     vars:
-      STATS_PATH: scratch/data/stats.txt
+      STATS_PATH: data/stats.txt
     cmds:
-      - ./{{.BUILD_DIR}}/scratch/scratch {{.STATS_PATH}}
+      - cd {{.BUILD_DIR}}/scratch && ./scratch {{.STATS_PATH}}
 
   run:dodge:
     desc: Run Dodge
     deps: [build:dodge]
     cmds:
-      - ./{{.BUILD_DIR}}/dodge/dodge
+      - cd {{.BUILD_DIR}}/dodge && ./dodge
 
   # --------------------------------------------------
   # Test

@@ -74,3 +74,7 @@ For all available commands see [`Taskfile.yaml`](`Taskfile.yaml`) or run `task` 
 ## Conventions
 
 See [STYLE.md](STYLE.md) for C style conventions used in this repo.
+
+## Credits
+
+Game assets (sound, art) from [Kenny](https://www.kenney.nl/).

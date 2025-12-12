@@ -15,7 +15,7 @@
 #define SPAWN_INTERVAL_LEVEL_DECREASE 0.2F // percent decrease per level
 #define SCORE_POINTS_PER_BLOCK 50
 #define LEVEL_CHANGE_INTERVAL 5.0F // seconds of survival between levels
-#define MAX_LEVEL 20
+#define MAX_LEVEL 10
 
 #define TEXT_BUFFER_LENGTH 1024
 
@@ -110,6 +110,10 @@ int main(void) {
 
     SetTargetFPS(60);
 
+    InitAudioDevice();
+    Sound fx_spawn = LoadSound("assets/laserSmall_000.ogg");
+    Sound fx_collision = LoadSound("assets/explosionCrunch_003.ogg");
+
     // Game state
     GameScreen screen = TITLE;
     GameState state = {0};
@@ -130,6 +134,8 @@ int main(void) {
         case TITLE: {
             if (IsKeyPressed(KEY_ENTER)) {
                 screen = GAMEPLAY;
+
+                PlaySound(fx_spawn);
             }
 
         } break;
@@ -170,6 +176,8 @@ int main(void) {
                 if (!DEBUG_INVINCIBLE) {
                     if (CheckCollisionRecs(player_bounds(player), block_bounds(block))) {
                         screen = ENDING;
+
+                        PlaySound(fx_collision);
                     }
                 }
             }
@@ -209,6 +217,8 @@ int main(void) {
                         .y = 10,
                     };
                     block->active = true;
+
+                    PlaySound(fx_spawn);
                 }
             }
         } break;
@@ -294,6 +304,10 @@ int main(void) {
 
     // De-Initialization
     //---------------------------------------------------------------------------------------------
+    UnloadSound(fx_spawn);
+    UnloadSound(fx_collision);
+    CloseAudioDevice();
+
     CloseWindow();
 
     return EXIT_SUCCESS;
