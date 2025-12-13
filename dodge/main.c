@@ -17,7 +17,9 @@
 #define LEVEL_CHANGE_INTERVAL 5.0F // seconds of survival between levels
 #define MAX_LEVEL 10
 
-#define LEVEL_UP_EFFECT_DURATION 2.0F // seconds
+#define LEVEL_UP_EFFECT_DURATION 2.0F   // seconds
+#define COLLISION_EFFECT_DURATION 1.55F // seconds (match collision sound)
+#define COLLISION_EFFECT_FREQUENCY 6    // flashes per second
 
 #define TEXT_BUFFER_LENGTH 1024
 
@@ -26,6 +28,7 @@
 typedef enum {
     TITLE,
     GAMEPLAY,
+    COLLISION,
     ENDING,
 } GameScreen;
 
@@ -49,6 +52,8 @@ typedef struct {
     float spawn_interval;
     bool level_up_effect_active;
     float level_up_effect_timer;
+    bool collision_effect_active;
+    float collision_effect_timer;
 } GameState;
 
 void game_state_reset(GameState *state) {
@@ -78,6 +83,8 @@ void game_state_reset(GameState *state) {
 
     state->level_up_effect_active = false;
     state->level_up_effect_timer = 0.0F;
+    state->collision_effect_active = false;
+    state->collision_effect_timer = 0.0F;
 }
 
 float clamp(float value, float min, float max) {
@@ -182,9 +189,11 @@ int main(void) {
 
                 if (!DEBUG_INVINCIBLE) {
                     if (CheckCollisionRecs(player_bounds(player), block_bounds(block))) {
-                        screen = ENDING;
-
                         PlaySound(fx_collision);
+                        state.collision_effect_active = true;
+                        state.collision_effect_timer = COLLISION_EFFECT_DURATION;
+
+                        screen = COLLISION;
                     }
                 }
             }
@@ -239,10 +248,17 @@ int main(void) {
                 }
             }
         } break;
+        case COLLISION: {
+            state.collision_effect_timer -= GetFrameTime();
+            if (state.collision_effect_timer < 0) {
+                screen = ENDING;
+            }
+        } break;
         case ENDING: {
             if (IsKeyPressed(KEY_ENTER)) {
                 screen = GAMEPLAY;
                 game_state_reset(&state);
+                PlaySound(fx_spawn);
             }
         } break;
         }
@@ -270,14 +286,23 @@ int main(void) {
                      DARKGRAY);
 
         } break;
-        case GAMEPLAY: {
+        case GAMEPLAY:
+        case COLLISION: {
             // Player
             Player *player = &state.player;
+            Color player_color = DARKBLUE;
+            if (state.collision_effect_active) {
+                float elapsed_time = COLLISION_EFFECT_DURATION - state.collision_effect_timer;
+                int flash_state = (int)(elapsed_time * COLLISION_EFFECT_FREQUENCY) % 2; // 0 or 1
+                if (flash_state == 0) {
+                    player_color = RED;
+                }
+            }
             DrawRectangle((int)player->position.x,
                           (int)player->position.y,
                           PLAYER_WIDTH,
                           PLAYER_HEIGHT,
-                          DARKBLUE);
+                          player_color);
 
             // Blocks
             for (size_t i = 0; i < MAX_BLOCKS; i++) {
