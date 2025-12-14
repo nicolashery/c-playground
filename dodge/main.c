@@ -200,7 +200,7 @@ int main(void) {
 
             // Change level
             state.time_since_last_level += GetFrameTime();
-            if (state.time_since_last_level > LEVEL_CHANGE_INTERVAL && state.level <= MAX_LEVEL) {
+            if (state.time_since_last_level > LEVEL_CHANGE_INTERVAL && state.level < MAX_LEVEL) {
                 state.time_since_last_level = 0.0F;
                 state.level += 1;
 
