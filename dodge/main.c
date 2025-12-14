@@ -20,6 +20,7 @@
 #define LEVEL_UP_EFFECT_DURATION 2.0F   // seconds
 #define COLLISION_EFFECT_DURATION 1.55F // seconds (match collision sound)
 #define COLLISION_EFFECT_FREQUENCY 6    // flashes per second
+#define SPAWN_EFFECT_DURATION 0.3F      // seconds
 
 #define TEXT_BUFFER_LENGTH 1024
 
@@ -39,6 +40,8 @@ typedef struct {
 typedef struct {
     Vector2 position;
     bool active;
+    bool spawn_effect_active;
+    float spawn_effect_timer;
 } Block;
 
 typedef struct {
@@ -56,6 +59,13 @@ typedef struct {
     float collision_effect_timer;
 } GameState;
 
+void block_spawn(Block *block, Vector2 position) {
+    block->position = position;
+    block->active = true;
+    block->spawn_effect_active = true;
+    block->spawn_effect_timer = SPAWN_EFFECT_DURATION;
+}
+
 void game_state_reset(GameState *state) {
     // Center at bottom of screen
     state->player.position = (Vector2){
@@ -67,11 +77,11 @@ void game_state_reset(GameState *state) {
         state->blocks[i].active = false;
     }
     // Center at top of screen
-    state->blocks[0].position = (Vector2){
-        .x = (float)GetScreenWidth() / 2 - (float)BLOCK_SIZE / 2,
-        .y = 10,
-    };
-    state->blocks[0].active = true;
+    block_spawn(&state->blocks[0],
+                (Vector2){
+                    .x = (float)GetScreenWidth() / 2 - (float)BLOCK_SIZE / 2,
+                    .y = 10,
+                });
 
     state->time_since_last_spawn = 0.0F;
     state->time_since_last_level = 0.0F;
@@ -179,6 +189,13 @@ int main(void) {
                     continue;
                 }
 
+                if (block->spawn_effect_active) {
+                    block->spawn_effect_timer -= GetFrameTime();
+                    if (block->spawn_effect_timer <= 0) {
+                        block->spawn_effect_active = false;
+                    }
+                }
+
                 bool block_off_screen = (block->position.y > (float)GetScreenHeight());
                 if (block_off_screen) {
                     block->active = false;
@@ -238,11 +255,11 @@ int main(void) {
                            "MAX_BLOCKS (%d)",
                            MAX_BLOCKS);
                 } else {
-                    block->position = (Vector2){
+                    Vector2 position = {
                         .x = (float)GetRandomValue(0, GetScreenWidth() - BLOCK_SIZE),
                         .y = 10,
                     };
-                    block->active = true;
+                    block_spawn(block, position);
 
                     PlaySound(fx_spawn);
                 }
@@ -311,8 +328,17 @@ int main(void) {
                     continue;
                 }
 
-                DrawRectangle(
-                    (int)block->position.x, (int)block->position.y, BLOCK_SIZE, BLOCK_SIZE, MAROON);
+                float x = block->position.x;
+                float y = block->position.y;
+                float size = BLOCK_SIZE;
+                if (block->spawn_effect_active) {
+                    float scale = 1 - block->spawn_effect_timer / SPAWN_EFFECT_DURATION;
+                    size = BLOCK_SIZE * scale;
+                    x += (BLOCK_SIZE - size) / 2;
+                    y += (BLOCK_SIZE - size) / 2;
+                }
+
+                DrawRectangle((int)x, (int)y, (int)size, (int)size, MAROON);
             }
 
             // Score
