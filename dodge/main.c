@@ -29,6 +29,7 @@
 typedef enum {
     TITLE,
     GAMEPLAY,
+    PAUSED,
     COLLISION,
     ENDING,
 } GameScreen;
@@ -177,6 +178,11 @@ int main(void) {
                                            (float)GetScreenWidth() - PLAYER_WIDTH);
             }
 
+            // Pause gameplay
+            if (IsKeyPressed(KEY_P)) {
+                screen = PAUSED;
+            }
+
             // Quit gameplay
             if (IsKeyPressed(KEY_Q)) {
                 screen = ENDING;
@@ -265,6 +271,11 @@ int main(void) {
                 }
             }
         } break;
+        case PAUSED: {
+            if (IsKeyPressed(KEY_P)) {
+                screen = GAMEPLAY;
+            }
+        } break;
         case COLLISION: {
             state.collision_effect_timer -= GetFrameTime();
             if (state.collision_effect_timer < 0) {
@@ -304,6 +315,7 @@ int main(void) {
 
         } break;
         case GAMEPLAY:
+        case PAUSED:
         case COLLISION: {
             // Player
             Player *player = &state.player;
@@ -379,6 +391,22 @@ int main(void) {
                          GetScreenHeight() / 2 - level_up_font_size,
                          level_up_font_size,
                          Fade(BLUE, state.level_up_effect_timer / LEVEL_UP_EFFECT_DURATION));
+            }
+
+            // Paused message
+            if (screen == PAUSED) {
+                const char *paused_text = "PAUSED";
+                int paused_font_size = 40;
+                int paused_text_width = MeasureText(paused_text, paused_font_size);
+                int paused_text_x = GetScreenWidth() / 2 - paused_text_width / 2;
+                int paused_text_y = GetScreenHeight() / 2 - paused_font_size;
+                int padding = 10;
+                DrawRectangle(paused_text_x - padding,
+                              paused_text_y - padding,
+                              paused_text_width + 2 * padding,
+                              paused_font_size + 2 * padding,
+                              RAYWHITE);
+                DrawText(paused_text, paused_text_x, paused_text_y, paused_font_size, GRAY);
             }
 
             // FPS
