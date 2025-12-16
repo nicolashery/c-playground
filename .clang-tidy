@@ -15,6 +15,7 @@ Checks: >
   -readability-avoid-const-params-in-decls,
   -readability-math-missing-parentheses,
   -readability-function-cognitive-complexity,
+  -readability-implicit-bool-conversion,
   -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
 
 WarningsAsErrors: ""

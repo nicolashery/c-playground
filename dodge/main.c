@@ -29,8 +29,6 @@
 typedef enum {
     TITLE,
     GAMEPLAY,
-    PAUSED,
-    COLLISION,
     ENDING,
 } GameScreen;
 
@@ -48,6 +46,7 @@ typedef struct {
 typedef struct {
     Player player;
     Block blocks[MAX_BLOCKS];
+    bool paused;
     float time_since_last_spawn;
     float time_since_last_level;
     int score;
@@ -83,6 +82,8 @@ void game_state_reset(GameState *state) {
                     .x = (float)GetScreenWidth() / 2 - (float)BLOCK_SIZE / 2,
                     .y = 10,
                 });
+
+    state->paused = false;
 
     state->time_since_last_spawn = 0.0F;
     state->time_since_last_level = 0.0F;
@@ -165,6 +166,30 @@ int main(void) {
 
         } break;
         case GAMEPLAY: {
+            // Quit gameplay
+            if (IsKeyPressed(KEY_Q)) {
+                screen = ENDING;
+            }
+
+            // Pause gameplay
+            if (IsKeyPressed(KEY_P)) {
+                state.paused = !state.paused;
+            }
+
+            if (state.paused) {
+                break;
+            }
+
+            // Ending collision effect
+            if (state.collision_effect_active) {
+                state.collision_effect_timer -= GetFrameTime();
+                if (state.collision_effect_timer < 0) {
+                    screen = ENDING;
+                }
+                break;
+            }
+
+            // Normal gameplay
             Player *player = &state.player;
             // Move player
             if (IsKeyDown(KEY_RIGHT)) {
@@ -176,16 +201,6 @@ int main(void) {
                 player->position.x = clamp(player->position.x - PLAYER_SPEED * GetFrameTime(),
                                            0.0F,
                                            (float)GetScreenWidth() - PLAYER_WIDTH);
-            }
-
-            // Pause gameplay
-            if (IsKeyPressed(KEY_P)) {
-                screen = PAUSED;
-            }
-
-            // Quit gameplay
-            if (IsKeyPressed(KEY_Q)) {
-                screen = ENDING;
             }
 
             // Move blocks & check collision
@@ -215,8 +230,6 @@ int main(void) {
                         PlaySound(fx_collision);
                         state.collision_effect_active = true;
                         state.collision_effect_timer = COLLISION_EFFECT_DURATION;
-
-                        screen = COLLISION;
                     }
                 }
             }
@@ -271,17 +284,6 @@ int main(void) {
                 }
             }
         } break;
-        case PAUSED: {
-            if (IsKeyPressed(KEY_P)) {
-                screen = GAMEPLAY;
-            }
-        } break;
-        case COLLISION: {
-            state.collision_effect_timer -= GetFrameTime();
-            if (state.collision_effect_timer < 0) {
-                screen = ENDING;
-            }
-        } break;
         case ENDING: {
             if (IsKeyPressed(KEY_ENTER)) {
                 screen = GAMEPLAY;
@@ -314,9 +316,7 @@ int main(void) {
                      DARKGRAY);
 
         } break;
-        case GAMEPLAY:
-        case PAUSED:
-        case COLLISION: {
+        case GAMEPLAY: {
             // Player
             Player *player = &state.player;
             Color player_color = DARKBLUE;
@@ -394,7 +394,7 @@ int main(void) {
             }
 
             // Paused message
-            if (screen == PAUSED) {
+            if (state.paused) {
                 const char *paused_text = "PAUSED";
                 int paused_font_size = 40;
                 int paused_text_width = MeasureText(paused_text, paused_font_size);
