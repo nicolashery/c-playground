@@ -59,7 +59,7 @@ tasks:
     vars:
       LEDGER_PATH: data/simple.bean
     cmds:
-      - cd {{.BUILD_DIR}}/bean && ./bean {{.LEDGER_PATH}}
+      - cd {{.BUILD_DIR}}/bean && ./bean check {{.LEDGER_PATH}}
 
   run:scratch:
     desc: Run Scratch

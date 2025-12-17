@@ -10,12 +10,14 @@ Checks: >
   misc-*,
   -modernize-use-trailing-return-type,
   -modernize-macro-to-enum,
+  -modernize-use-nullptr,
   -readability-identifier-length,
   -readability-magic-numbers,
   -readability-avoid-const-params-in-decls,
   -readability-math-missing-parentheses,
   -readability-function-cognitive-complexity,
   -readability-implicit-bool-conversion,
+  -readability-non-const-parameter,
   -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
 
 WarningsAsErrors: ""
