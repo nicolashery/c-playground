@@ -75,25 +75,178 @@ typedef struct {
 } Transaction;
 
 typedef struct {
-    Transaction *data;
+    StringSlice *data;
     size_t size;
     size_t capacity;
-} TransactionArray;
+} StringSliceArray;
 
-TransactionArray *transaction_array_create() {
-    TransactionArray *arr = malloc(sizeof(TransactionArray));
+StringSliceArray *string_slice_array_create(size_t capacity) {
+    StringSliceArray *arr = malloc(sizeof(StringSliceArray));
     if (arr == NULL) {
         return NULL;
     }
 
-    arr->data = malloc(TRANSACTION_ARRAY_INITIAL_CAPACITY * sizeof(Transaction));
+    arr->data = malloc(capacity * sizeof(StringSlice));
     if (arr->data == NULL) {
         free(arr);
         return NULL;
     }
 
     arr->size = 0;
-    arr->capacity = TRANSACTION_ARRAY_INITIAL_CAPACITY;
+    arr->capacity = capacity;
+    return arr;
+}
+
+void string_slice_array_free(StringSliceArray *arr) {
+    if (arr == NULL) {
+        return;
+    }
+
+    free(arr->data);
+    free(arr);
+}
+
+void string_slice_array_push(StringSliceArray *arr, StringSlice value) {
+    if (arr->size < arr->capacity) {
+        arr->data[arr->size] = value;
+        arr->size++;
+        return;
+    }
+
+    size_t new_capacity = arr->capacity * 2;
+    StringSlice *new_data = realloc(arr->data, new_capacity * sizeof(StringSlice));
+    if (new_data == NULL) {
+        return;
+    }
+
+    arr->data = new_data;
+    arr->data[arr->size] = value;
+    arr->size++;
+    arr->capacity = new_capacity;
+}
+
+typedef struct {
+    Account *data;
+    size_t size;
+    size_t capacity;
+} AccountArray;
+
+AccountArray *account_array_create(size_t capacity) {
+    AccountArray *arr = malloc(sizeof(AccountArray));
+    if (arr == NULL) {
+        return NULL;
+    }
+
+    arr->data = malloc(capacity * sizeof(Account));
+    if (arr->data == NULL) {
+        free(arr);
+        return NULL;
+    }
+
+    arr->size = 0;
+    arr->capacity = capacity;
+    return arr;
+}
+
+void account_array_free(AccountArray *arr) {
+    if (arr == NULL) {
+        return;
+    }
+
+    free(arr->data);
+    free(arr);
+}
+
+void account_array_push(AccountArray *arr, Account value) {
+    if (arr->size < arr->capacity) {
+        arr->data[arr->size] = value;
+        arr->size++;
+        return;
+    }
+
+    size_t new_capacity = arr->capacity * 2;
+    Account *new_data = realloc(arr->data, new_capacity * sizeof(Account));
+    if (new_data == NULL) {
+        return;
+    }
+
+    arr->data = new_data;
+    arr->data[arr->size] = value;
+    arr->size++;
+    arr->capacity = new_capacity;
+}
+
+typedef struct {
+    Posting *data;
+    size_t size;
+    size_t capacity;
+} PostingArray;
+
+PostingArray *posting_array_create(size_t capacity) {
+    PostingArray *arr = malloc(sizeof(PostingArray));
+    if (arr == NULL) {
+        return NULL;
+    }
+
+    arr->data = malloc(capacity * sizeof(Posting));
+    if (arr->data == NULL) {
+        free(arr);
+        return NULL;
+    }
+
+    arr->size = 0;
+    arr->capacity = capacity;
+    return arr;
+}
+
+void posting_array_free(PostingArray *arr) {
+    if (arr == NULL) {
+        return;
+    }
+
+    free(arr->data);
+    free(arr);
+}
+
+void posting_array_push(PostingArray *arr, Posting value) {
+    if (arr->size < arr->capacity) {
+        arr->data[arr->size] = value;
+        arr->size++;
+        return;
+    }
+
+    size_t new_capacity = arr->capacity * 2;
+    Posting *new_data = realloc(arr->data, new_capacity * sizeof(Posting));
+    if (new_data == NULL) {
+        return;
+    }
+
+    arr->data = new_data;
+    arr->data[arr->size] = value;
+    arr->size++;
+    arr->capacity = new_capacity;
+}
+
+typedef struct {
+    Transaction *data;
+    size_t size;
+    size_t capacity;
+} TransactionArray;
+
+TransactionArray *transaction_array_create(size_t capacity) {
+    TransactionArray *arr = malloc(sizeof(TransactionArray));
+    if (arr == NULL) {
+        return NULL;
+    }
+
+    arr->data = malloc(capacity * sizeof(Transaction));
+    if (arr->data == NULL) {
+        free(arr);
+        return NULL;
+    }
+
+    arr->size = 0;
+    arr->capacity = capacity;
     return arr;
 }
 
@@ -127,9 +280,9 @@ void transaction_array_push(TransactionArray *arr, Transaction value) {
 
 typedef struct {
     char *file_buffer;
-    StringSlice *currencies;
-    Account *accounts;
-    Posting *postings;
+    StringSliceArray *currencies;
+    AccountArray *accounts;
+    PostingArray *postings;
     TransactionArray *transactions;
 } Ledger;
 
@@ -145,14 +298,14 @@ Ledger *ledger_create() {
         return NULL;
     }
 
-    ledger->currencies = malloc(CURRENCY_ARRAY_INITIAL_CAPACITY * sizeof(StringSlice));
+    ledger->currencies = string_slice_array_create(CURRENCY_ARRAY_INITIAL_CAPACITY);
     if (ledger->currencies == NULL) {
         free(ledger->file_buffer);
         free(ledger);
         return NULL;
     }
 
-    ledger->accounts = malloc(ACCOUNT_ARRAY_INITIAL_CAPACITY * sizeof(Account));
+    ledger->accounts = account_array_create(ACCOUNT_ARRAY_INITIAL_CAPACITY);
     if (ledger->accounts == NULL) {
         free(ledger->file_buffer);
         free(ledger->currencies);
@@ -160,7 +313,7 @@ Ledger *ledger_create() {
         return NULL;
     }
 
-    ledger->postings = malloc(POSTING_ARRAY_INITIAL_CAPACITY * sizeof(Posting));
+    ledger->postings = posting_array_create(POSTING_ARRAY_INITIAL_CAPACITY);
     if (ledger->postings == NULL) {
         free(ledger->file_buffer);
         free(ledger->currencies);
@@ -169,7 +322,7 @@ Ledger *ledger_create() {
         return NULL;
     }
 
-    ledger->transactions = transaction_array_create();
+    ledger->transactions = transaction_array_create(TRANSACTION_ARRAY_INITIAL_CAPACITY);
     if (ledger->transactions == NULL) {
         free(ledger->file_buffer);
         free(ledger->currencies);
@@ -205,9 +358,9 @@ int test_data() {
         return EXIT_FAILURE;
     }
 
-    size_t currencies_count = 0;
-    size_t accounts_count = 0;
-    size_t postings_count = 0;
+    StringSlice currency;
+    Account account;
+    Posting posting;
     Transaction txn;
 
     char *cursor = l->file_buffer;
@@ -216,18 +369,18 @@ int test_data() {
 
     char *start = cursor;
     cursor += sprintf(cursor, "USD");
-    l->currencies[currencies_count] = (StringSlice){
+    currency = (StringSlice){
         .start = start,
         .len = (size_t)(cursor - start),
     };
-    size_t currency_usd_index = currencies_count;
-    currencies_count++;
+    size_t currency_usd_index = l->currencies->size;
+    string_slice_array_push(l->currencies, currency);
 
     cursor += sprintf(cursor, "\n\n2014-01-01 open ");
 
     start = cursor;
     cursor += sprintf(cursor, "Assets:Checking");
-    l->accounts[accounts_count] = (Account){
+    account = (Account){
         .type = ASSETS,
         .name =
             (StringSlice){
@@ -235,14 +388,14 @@ int test_data() {
                 .len = (size_t)(cursor - start),
             },
     };
-    size_t account_assets_checking_index = accounts_count;
-    accounts_count++;
+    size_t account_assets_checking_index = l->accounts->size;
+    account_array_push(l->accounts, account);
 
     cursor += sprintf(cursor, "\n2014-01-01 open ");
 
     start = cursor;
     cursor += sprintf(cursor, "Expenses:Food");
-    l->accounts[accounts_count] = (Account){
+    account = (Account){
         .type = EXPENSES,
         .name =
             (StringSlice){
@@ -250,8 +403,8 @@ int test_data() {
                 .len = (size_t)(cursor - start),
             },
     };
-    size_t account_expenses_food_index = accounts_count;
-    accounts_count++;
+    size_t account_expenses_food_index = l->accounts->size;
+    account_array_push(l->accounts, account);
 
     cursor += sprintf(cursor, "\n\n2014-01-05 * \"");
     txn.date = (Date){
@@ -279,35 +432,33 @@ int test_data() {
 
     cursor += sprintf(cursor, "\"\n");
     txn.postings_count = 0;
-    txn.postings_start_index = postings_count;
+    txn.postings_start_index = l->postings->size;
 
     cursor += sprintf(cursor, "  Expenses:Food            -45.12 USD\n");
-    txn.postings_count++;
-    Posting *p = &l->postings[postings_count];
-    postings_count++;
-    p->account_index = account_expenses_food_index;
-    p->amount = (Amount){
+    posting.account_index = account_expenses_food_index;
+    posting.amount = (Amount){
         .number = -4512,
         .currency_index = currency_usd_index,
     };
+    posting_array_push(l->postings, posting);
+    txn.postings_count++;
 
     (void)sprintf(cursor, "  Assets:Checking           45.12 USD\n");
-    txn.postings_count++;
-    p = &l->postings[postings_count];
-    postings_count++;
-    p->account_index = account_assets_checking_index;
-    p->amount = (Amount){
+    posting.account_index = account_assets_checking_index;
+    posting.amount = (Amount){
         .number = 4512,
         .currency_index = currency_usd_index,
     };
+    posting_array_push(l->postings, posting);
+    txn.postings_count++;
 
     transaction_array_push(l->transactions, txn);
 
     printf("=================================\n");
     printf("Currencies\n");
     printf("=================================\n");
-    for (size_t i = 0; i < currencies_count; i++) {
-        print_slice(l->currencies[i]);
+    for (size_t i = 0; i < l->currencies->size; i++) {
+        print_slice(l->currencies->data[i]);
         printf("\n");
     }
     printf("\n");
@@ -315,8 +466,8 @@ int test_data() {
     printf("=================================\n");
     printf("Accounts\n");
     printf("=================================\n");
-    for (size_t i = 0; i < accounts_count; i++) {
-        print_slice(l->accounts[i].name);
+    for (size_t i = 0; i < l->accounts->size; i++) {
+        print_slice(l->accounts->data[i].name);
         printf("\n");
     }
     printf("\n");
@@ -339,13 +490,13 @@ int test_data() {
         printf("\n");
         printf("Postings:\n");
         for (size_t j = 0; j < t.postings_count; j++) {
-            Posting posting = l->postings[t.postings_start_index + j];
+            posting = l->postings->data[t.postings_start_index + j];
             printf(" ");
-            print_slice(l->accounts[posting.account_index].name);
+            print_slice(l->accounts->data[posting.account_index].name);
             printf(" ");
             printf("%ld", posting.amount.number);
             printf(" cents ");
-            print_slice(l->currencies[posting.amount.currency_index]);
+            print_slice(l->currencies->data[posting.amount.currency_index]);
             printf("\n");
         }
     }
