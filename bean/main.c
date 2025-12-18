@@ -4,12 +4,14 @@
 
 typedef struct {
     // Pointer into file buffer
-    // Ownership: The string slice does not own this buffer and memory is not
-    // freed when the slice is freed
     const char *start;
     // Length in bytes
     size_t len;
 } StringSlice;
+
+void print_slice(StringSlice slice) {
+    printf("%.*s", (int)slice.len, slice.start);
+}
 
 typedef struct {
     int year;
@@ -58,76 +60,118 @@ typedef struct {
     // (if absent set to start NULL and length 0)
     StringSlice payee;
     // String that provides the description of the transaction
-    // (can be empty, in which cast length is 0 but start not NULL)
+    // (can be empty, in which case length is 0 but start not NULL)
     StringSlice narration;
-    // Array of postings for this transaction
-    // Ownership: The transaction owns these postings, memory is allocated and
-    // freed at the same time as the transaction
-    Posting *postings;
+    // Index into an array of postings
+    // Note that postings are unique to a transaction, but we use this
+    // notably to simplify memory management and avoid small allocations
+    size_t postings_start_index;
     size_t postings_count;
 } Transaction;
 
-void print_slice(StringSlice slice) {
-    printf("%.*s", (int)slice.len, slice.start);
+typedef struct {
+    char *file_buffer;
+    StringSlice *currencies;
+    Account *accounts;
+    Posting *postings;
+    Transaction *transactions;
+} Ledger;
+
+Ledger *ledger_create() {
+    Ledger *ledger = malloc(sizeof(Ledger));
+    if (ledger == NULL) {
+        return NULL;
+    }
+
+    ledger->file_buffer = malloc(1024);
+    if (ledger->file_buffer == NULL) {
+        free(ledger);
+        return NULL;
+    }
+
+    ledger->currencies = malloc(10 * sizeof(StringSlice));
+    if (ledger->currencies == NULL) {
+        free(ledger->file_buffer);
+        free(ledger);
+        return NULL;
+    }
+
+    ledger->accounts = malloc(50 * sizeof(Account));
+    if (ledger->accounts == NULL) {
+        free(ledger->file_buffer);
+        free(ledger->currencies);
+        free(ledger);
+        return NULL;
+    }
+
+    ledger->postings = malloc(200 * sizeof(Posting));
+    if (ledger->postings == NULL) {
+        free(ledger->file_buffer);
+        free(ledger->currencies);
+        free(ledger->accounts);
+        free(ledger);
+        return NULL;
+    }
+
+    ledger->transactions = malloc(100 * sizeof(Transaction));
+    if (ledger->transactions == NULL) {
+        free(ledger->file_buffer);
+        free(ledger->currencies);
+        free(ledger->accounts);
+        free(ledger->postings);
+        free(ledger);
+        return NULL;
+    }
+
+    return ledger;
+}
+
+void ledger_free(Ledger *ledger) {
+    if (ledger == NULL) {
+        return;
+    }
+
+    free(ledger->file_buffer);
+    free(ledger->currencies);
+    free(ledger->accounts);
+    free(ledger->postings);
+    free(ledger->transactions);
+    free(ledger);
 }
 
 int test_data() {
+// Ignore warnings for sprintf
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    // Simulate file buffer dynamically read in memory
-    char *file_buffer = malloc(1024);
-    if (file_buffer == NULL) {
-        printf("ERROR: Could not allocate file buffer\n");
+    Ledger *l = ledger_create();
+    if (l == NULL) {
+        printf("ERROR: Could not allocate ledger\n");
         return EXIT_FAILURE;
     }
 
-    // Simulate dynamic array for currencies
-    // (will not grow in this test)
-    StringSlice *currencies = malloc(10 * sizeof(StringSlice));
-    if (currencies == NULL) {
-        printf("ERROR: Could not allocate currencies array\n");
-        free(file_buffer);
-        return EXIT_FAILURE;
-    }
-
-    // Simulate dynamic array for accounts
-    // (will not grow in this test)
-    Account *accounts = malloc(10 * sizeof(Account));
-    if (accounts == NULL) {
-        printf("ERROR: Could not allocate accounts array\n");
-        free(currencies);
-        free(file_buffer);
-        return EXIT_FAILURE;
-    }
-
-    // Simulate dynamic array for transactions
-    // (will not grow in this test)
-    Transaction *transactions = malloc(10 * sizeof(Transaction));
-    if (accounts == NULL) {
-        printf("ERROR: Could not allocate transactions array\n");
-        free(currencies);
-        free(accounts);
-        free(file_buffer);
-        return EXIT_FAILURE;
-    }
+    size_t currencies_count = 0;
+    size_t accounts_count = 0;
+    size_t postings_count = 0;
     size_t transactions_count = 0;
 
-    char *cursor = file_buffer;
+    char *cursor = l->file_buffer;
 
     cursor += sprintf(cursor, "2014-01-01 commodity ");
 
     char *start = cursor;
     cursor += sprintf(cursor, "USD");
-    currencies[0] = (StringSlice){
+    l->currencies[currencies_count] = (StringSlice){
         .start = start,
         .len = (size_t)(cursor - start),
     };
+    size_t currency_usd_index = currencies_count;
+    currencies_count++;
 
     cursor += sprintf(cursor, "\n\n2014-01-01 open ");
 
     start = cursor;
     cursor += sprintf(cursor, "Assets:Checking");
-    accounts[0] = (Account){
+    l->accounts[accounts_count] = (Account){
         .type = ASSETS,
         .name =
             (StringSlice){
@@ -135,12 +179,14 @@ int test_data() {
                 .len = (size_t)(cursor - start),
             },
     };
+    size_t account_assets_checking_index = accounts_count;
+    accounts_count++;
 
     cursor += sprintf(cursor, "\n2014-01-01 open ");
 
     start = cursor;
     cursor += sprintf(cursor, "Expenses:Food");
-    accounts[1] = (Account){
+    l->accounts[accounts_count] = (Account){
         .type = EXPENSES,
         .name =
             (StringSlice){
@@ -148,12 +194,22 @@ int test_data() {
                 .len = (size_t)(cursor - start),
             },
     };
+    size_t account_expenses_food_index = accounts_count;
+    accounts_count++;
 
     cursor += sprintf(cursor, "\n\n2014-01-05 * \"");
+    Transaction *txn = &l->transactions[transactions_count];
+    transactions_count++;
+    txn->date = (Date){
+        .year = 2014,
+        .month = 1,
+        .day = 5,
+    };
+    txn->flag = FLAG_OKAY;
 
     start = cursor;
     cursor += sprintf(cursor, "Whole Foods");
-    StringSlice payee = {
+    txn->payee = (StringSlice){
         .start = start,
         .len = (size_t)(cursor - start),
     };
@@ -162,112 +218,89 @@ int test_data() {
 
     start = cursor;
     cursor += sprintf(cursor, "Groceries");
-    StringSlice narration = {
+    txn->narration = (StringSlice){
         .start = start,
         .len = (size_t)(cursor - start),
     };
 
     cursor += sprintf(cursor, "\"\n");
+    txn->postings_count = 0;
+    txn->postings_start_index = postings_count;
+
     cursor += sprintf(cursor, "  Expenses:Food            -45.12 USD\n");
+    txn->postings_count++;
+    Posting *p = &l->postings[postings_count];
+    postings_count++;
+    p->account_index = account_expenses_food_index;
+    p->amount = (Amount){
+        .number = -4512,
+        .currency_index = currency_usd_index,
+    };
+
     (void)sprintf(cursor, "  Assets:Checking           45.12 USD\n");
-    size_t postings_count = 2;
-    Posting *postings = malloc(postings_count * sizeof(Posting));
-    if (postings == NULL) {
-        printf("ERROR: Could not allocate postings array\n");
-        free(currencies);
-        free(accounts);
-        for (size_t i = 0; i < transactions_count; i++) {
-            free(transactions[i].postings);
-        }
-        free(transactions);
-        free(file_buffer);
-        return EXIT_FAILURE;
-    }
-    postings[0] = (Posting){
-        .account_index = 1,
-        .amount =
-            (Amount){
-                .number = -4512,
-                .currency_index = 0,
-            },
-    };
-    postings[1] = (Posting){
-        .account_index = 0,
-        .amount =
-            (Amount){
-                .number = 4512,
-                .currency_index = 0,
-            },
-    };
-    transactions[transactions_count++] = (Transaction){
-        .date =
-            (Date){
-                .year = 2014,
-                .month = 1,
-                .day = 5,
-            },
-        .flag = FLAG_OKAY,
-        .payee = payee,
-        .narration = narration,
-        .postings = postings,
-        .postings_count = postings_count,
+    txn->postings_count++;
+    p = &l->postings[postings_count];
+    postings_count++;
+    p->account_index = account_assets_checking_index;
+    p->amount = (Amount){
+        .number = 4512,
+        .currency_index = currency_usd_index,
     };
 
     printf("=================================\n");
     printf("Currencies\n");
     printf("=================================\n");
-    print_slice(currencies[0]);
-    printf("\n");
+    for (size_t i = 0; i < currencies_count; i++) {
+        print_slice(l->currencies[i]);
+        printf("\n");
+    }
     printf("\n");
 
     printf("=================================\n");
     printf("Accounts\n");
     printf("=================================\n");
-    print_slice(accounts[0].name);
-    printf("\n");
-    print_slice(accounts[1].name);
-    printf("\n");
+    for (size_t i = 0; i < accounts_count; i++) {
+        print_slice(l->accounts[i].name);
+        printf("\n");
+    }
     printf("\n");
 
     printf("=================================\n");
     printf("Transactions\n");
     printf("=================================\n");
-    Transaction t = transactions[0];
-    printf("Date: %d-%02d-%02d\n", t.date.year, t.date.month, t.date.day);
-    printf("Payee: ");
-    if (t.payee.start == NULL) {
-        printf("NULL\n");
-    } else {
-        print_slice(t.payee);
+    for (size_t i = 0; i < transactions_count; i++) {
+        Transaction t = l->transactions[i];
+        printf("Date: %d-%02d-%02d\n", t.date.year, t.date.month, t.date.day);
+        printf("Payee: ");
+        if (t.payee.start == NULL) {
+            printf("NULL\n");
+        } else {
+            print_slice(t.payee);
+            printf("\n");
+        }
+        printf("Narration: ");
+        print_slice(t.narration);
         printf("\n");
-    }
-    printf("Narration: ");
-    print_slice(t.narration);
-    printf("\n");
-    printf("Postings:\n");
-    for (size_t i = 0; i < t.postings_count; i++) {
-        printf(" ");
-        print_slice(accounts[t.postings[i].account_index].name);
-        printf(" ");
-        printf("%ld", t.postings[i].amount.number);
-        printf(" cents ");
-        print_slice(currencies[t.postings[i].amount.currency_index]);
-        printf("\n");
+        printf("Postings:\n");
+        for (size_t j = 0; j < t.postings_count; j++) {
+            Posting posting = l->postings[t.postings_start_index + j];
+            printf(" ");
+            print_slice(l->accounts[posting.account_index].name);
+            printf(" ");
+            printf("%ld", posting.amount.number);
+            printf(" cents ");
+            print_slice(l->currencies[posting.amount.currency_index]);
+            printf("\n");
+        }
     }
     printf("\n");
 
     printf("=================================\n");
     printf("File buffer\n");
     printf("=================================\n");
-    printf("%s\n", file_buffer);
+    printf("%s\n", l->file_buffer);
 
-    free(currencies);
-    free(accounts);
-    for (size_t i = 0; i < transactions_count; i++) {
-        free(transactions[i].postings);
-    }
-    free(transactions);
-    free(file_buffer);
+    ledger_free(l);
     return EXIT_SUCCESS;
 #pragma clang diagnostic pop
 }
