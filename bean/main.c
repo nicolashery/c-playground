@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define CURRENCY_ARRAY_INITIAL_CAPACITY 5
+#define ACCOUNT_ARRAY_INITIAL_CAPACITY 20
+#define POSTING_ARRAY_INITIAL_CAPACITY 100
+#define TRANSACTION_ARRAY_INITIAL_CAPACITY 50
+
 typedef struct {
     // Pointer into file buffer
     const char *start;
@@ -70,11 +75,62 @@ typedef struct {
 } Transaction;
 
 typedef struct {
+    Transaction *data;
+    size_t size;
+    size_t capacity;
+} TransactionArray;
+
+TransactionArray *transaction_array_create() {
+    TransactionArray *arr = malloc(sizeof(TransactionArray));
+    if (arr == NULL) {
+        return NULL;
+    }
+
+    arr->data = malloc(TRANSACTION_ARRAY_INITIAL_CAPACITY * sizeof(Transaction));
+    if (arr->data == NULL) {
+        free(arr);
+        return NULL;
+    }
+
+    arr->size = 0;
+    arr->capacity = TRANSACTION_ARRAY_INITIAL_CAPACITY;
+    return arr;
+}
+
+void transaction_array_free(TransactionArray *arr) {
+    if (arr == NULL) {
+        return;
+    }
+
+    free(arr->data);
+    free(arr);
+}
+
+void transaction_array_push(TransactionArray *arr, Transaction value) {
+    if (arr->size < arr->capacity) {
+        arr->data[arr->size] = value;
+        arr->size++;
+        return;
+    }
+
+    size_t new_capacity = arr->capacity * 2;
+    Transaction *new_data = realloc(arr->data, new_capacity * sizeof(Transaction));
+    if (new_data == NULL) {
+        return;
+    }
+
+    arr->data = new_data;
+    arr->data[arr->size] = value;
+    arr->size++;
+    arr->capacity = new_capacity;
+}
+
+typedef struct {
     char *file_buffer;
     StringSlice *currencies;
     Account *accounts;
     Posting *postings;
-    Transaction *transactions;
+    TransactionArray *transactions;
 } Ledger;
 
 Ledger *ledger_create() {
@@ -89,14 +145,14 @@ Ledger *ledger_create() {
         return NULL;
     }
 
-    ledger->currencies = malloc(10 * sizeof(StringSlice));
+    ledger->currencies = malloc(CURRENCY_ARRAY_INITIAL_CAPACITY * sizeof(StringSlice));
     if (ledger->currencies == NULL) {
         free(ledger->file_buffer);
         free(ledger);
         return NULL;
     }
 
-    ledger->accounts = malloc(50 * sizeof(Account));
+    ledger->accounts = malloc(ACCOUNT_ARRAY_INITIAL_CAPACITY * sizeof(Account));
     if (ledger->accounts == NULL) {
         free(ledger->file_buffer);
         free(ledger->currencies);
@@ -104,7 +160,7 @@ Ledger *ledger_create() {
         return NULL;
     }
 
-    ledger->postings = malloc(200 * sizeof(Posting));
+    ledger->postings = malloc(POSTING_ARRAY_INITIAL_CAPACITY * sizeof(Posting));
     if (ledger->postings == NULL) {
         free(ledger->file_buffer);
         free(ledger->currencies);
@@ -113,7 +169,7 @@ Ledger *ledger_create() {
         return NULL;
     }
 
-    ledger->transactions = malloc(100 * sizeof(Transaction));
+    ledger->transactions = transaction_array_create();
     if (ledger->transactions == NULL) {
         free(ledger->file_buffer);
         free(ledger->currencies);
@@ -135,7 +191,7 @@ void ledger_free(Ledger *ledger) {
     free(ledger->currencies);
     free(ledger->accounts);
     free(ledger->postings);
-    free(ledger->transactions);
+    transaction_array_free(ledger->transactions);
     free(ledger);
 }
 
@@ -152,7 +208,7 @@ int test_data() {
     size_t currencies_count = 0;
     size_t accounts_count = 0;
     size_t postings_count = 0;
-    size_t transactions_count = 0;
+    Transaction txn;
 
     char *cursor = l->file_buffer;
 
@@ -198,18 +254,16 @@ int test_data() {
     accounts_count++;
 
     cursor += sprintf(cursor, "\n\n2014-01-05 * \"");
-    Transaction *txn = &l->transactions[transactions_count];
-    transactions_count++;
-    txn->date = (Date){
+    txn.date = (Date){
         .year = 2014,
         .month = 1,
         .day = 5,
     };
-    txn->flag = FLAG_OKAY;
+    txn.flag = FLAG_OKAY;
 
     start = cursor;
     cursor += sprintf(cursor, "Whole Foods");
-    txn->payee = (StringSlice){
+    txn.payee = (StringSlice){
         .start = start,
         .len = (size_t)(cursor - start),
     };
@@ -218,17 +272,17 @@ int test_data() {
 
     start = cursor;
     cursor += sprintf(cursor, "Groceries");
-    txn->narration = (StringSlice){
+    txn.narration = (StringSlice){
         .start = start,
         .len = (size_t)(cursor - start),
     };
 
     cursor += sprintf(cursor, "\"\n");
-    txn->postings_count = 0;
-    txn->postings_start_index = postings_count;
+    txn.postings_count = 0;
+    txn.postings_start_index = postings_count;
 
     cursor += sprintf(cursor, "  Expenses:Food            -45.12 USD\n");
-    txn->postings_count++;
+    txn.postings_count++;
     Posting *p = &l->postings[postings_count];
     postings_count++;
     p->account_index = account_expenses_food_index;
@@ -238,7 +292,7 @@ int test_data() {
     };
 
     (void)sprintf(cursor, "  Assets:Checking           45.12 USD\n");
-    txn->postings_count++;
+    txn.postings_count++;
     p = &l->postings[postings_count];
     postings_count++;
     p->account_index = account_assets_checking_index;
@@ -246,6 +300,8 @@ int test_data() {
         .number = 4512,
         .currency_index = currency_usd_index,
     };
+
+    transaction_array_push(l->transactions, txn);
 
     printf("=================================\n");
     printf("Currencies\n");
@@ -268,8 +324,8 @@ int test_data() {
     printf("=================================\n");
     printf("Transactions\n");
     printf("=================================\n");
-    for (size_t i = 0; i < transactions_count; i++) {
-        Transaction t = l->transactions[i];
+    for (size_t i = 0; i < l->transactions->size; i++) {
+        Transaction t = l->transactions->data[i];
         printf("Date: %d-%02d-%02d\n", t.date.year, t.date.month, t.date.day);
         printf("Payee: ");
         if (t.payee.start == NULL) {
