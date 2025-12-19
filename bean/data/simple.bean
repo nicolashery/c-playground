@@ -1,10 +1,12 @@
 2014-01-01 commodity USD
 
+; Accounts
 2014-01-01 open Assets:Checking
 2014-01-01 open Equity:OpeningBalances
 2014-01-01 open Expenses:Food
 
-2014-01-02 * "Deposit"
+; Transactions
+2014-01-02 * "Deposit" ; Opening balance
   Assets:Checking          100.00 USD
   Equity:OpeningBalances  -100.00 USD
 

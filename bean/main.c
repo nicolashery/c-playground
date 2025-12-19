@@ -722,6 +722,106 @@ void scanner_skip_comments(Scanner *s) {
     }
 }
 
+bool try_scan_date(Scanner *s, Token *t) {
+    const char *start = s->current;
+    const char *peek = s->current;
+
+    // Consume year (YYYY)
+    for (int i = 0; i < 3; ++i) {
+        peek++;
+        if (!isdigit(*peek)) {
+            return false;
+        }
+    }
+
+    // Consume separator (-)
+    peek++;
+    if (*peek != '-') {
+        return false;
+    }
+
+    // Consume month (MM)
+    for (int i = 0; i < 2; ++i) {
+        peek++;
+        if (!isdigit(*peek)) {
+            return false;
+        }
+    }
+
+    // Consume separator (-)
+    peek++;
+    if (*peek != '-') {
+        return false;
+    }
+
+    // Consume day (DD)
+    for (int i = 0; i < 2; ++i) {
+        peek++;
+        if (!isdigit(*peek)) {
+            return false;
+        }
+    }
+
+    peek++;
+
+    t->type = TOKEN_DATE;
+    t->text = (StringSlice){
+        .start = start,
+        .len = (size_t)(peek - start),
+    };
+    t->line = s->line;
+
+    s->current = peek;
+
+    return true;
+}
+
+bool try_scan_number(Scanner *s, Token *t) {
+    const char *start = s->current;
+    const char *peek = s->current;
+
+    // Consume optional negative sign (-)
+    if (*peek == '-') {
+        peek++;
+    }
+
+    // At least one digit
+    if (!isdigit(*peek)) {
+        return false;
+    }
+    peek++;
+
+    // Consume rest of digits
+    while (*peek != '\0' && isdigit(*peek)) {
+        peek++;
+    }
+
+    // Optional decimal point (.)
+    if (*peek == '.') {
+        peek++;
+        // At least one digit after decimal point
+        if (!isdigit(*peek)) {
+            return false;
+        }
+        peek++;
+        // Consume rest of digits after decimal point
+        while (*peek != '\0' && isdigit(*peek)) {
+            peek++;
+        }
+    }
+
+    t->type = TOKEN_NUMBER;
+    t->text = (StringSlice){
+        .start = start,
+        .len = (size_t)(peek - start),
+    };
+    t->line = s->line;
+
+    s->current = peek;
+
+    return true;
+}
+
 Token scanner_next_token(Scanner *s) {
 
     scanner_skip_whitespace(s);
@@ -848,6 +948,21 @@ Token scanner_next_token(Scanner *s) {
         };
         t.line = s->line;
         return t;
+    }
+
+    // Date or Number
+    if (isdigit(c)) {
+        if (try_scan_date(s, &t)) {
+            return t;
+        }
+
+        if (try_scan_number(s, &t)) {
+            return t;
+        }
+    } else if (c == '-') {
+        if (try_scan_number(s, &t)) {
+            return t;
+        }
     }
 
     t.type = TOKEN_INVALID;
