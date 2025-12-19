@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -729,6 +730,77 @@ Token scanner_next_token(Scanner *s) {
         };
         t.line = s->line;
         s->current++;
+        return t;
+    }
+
+    if (islower(c)) {
+        const char *start = s->current;
+        while (islower(c)) {
+            s->current++;
+            c = *s->current;
+        }
+
+        t.type = TOKEN_KEYWORD;
+        t.text = (StringSlice){
+            .start = start,
+            .len = (size_t)(s->current - start),
+        };
+        t.line = s->line;
+        return t;
+    }
+
+    if (isupper(c)) {
+        const char *start = s->current;
+        while (isalnum(c) || c == ':') {
+            s->current++;
+            c = *s->current;
+        }
+
+        t.type = TOKEN_ACCOUNT;
+        t.text = (StringSlice){
+            .start = start,
+            .len = (size_t)(s->current - start),
+        };
+        t.line = s->line;
+        return t;
+    }
+
+    if (c == '\"') {
+        const char *start = s->current;
+        bool invalid = false;
+        s->current++;
+        c = *s->current;
+        while (c != '\"') {
+            if (c == '\0' || c == '\n') {
+                invalid = true;
+                break;
+            }
+
+            s->current++;
+            c = *s->current;
+        }
+
+        if (invalid) {
+            t.type = TOKEN_INVALID;
+            t.text = (StringSlice){
+                .start = start,
+                .len = 1,
+            };
+            t.line = s->line;
+            // Go back to just after the opening '\"'
+            s->current = start + 1;
+            return t;
+        }
+
+        // Consume closing '\"'
+        s->current++;
+
+        t.type = TOKEN_STRING;
+        t.text = (StringSlice){
+            .start = start,
+            .len = (size_t)(s->current - start),
+        };
+        t.line = s->line;
         return t;
     }
 
