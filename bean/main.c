@@ -354,7 +354,7 @@ int test_data() {
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
     Ledger *l = ledger_create();
     if (l == NULL) {
-        printf("ERROR: Could not allocate ledger\n");
+        printf("Error allocating ledger\n");
         return EXIT_FAILURE;
     }
 
@@ -512,6 +512,78 @@ int test_data() {
 #pragma clang diagnostic pop
 }
 
+char *read_file(char *file_path) {
+    FILE *file = fopen(file_path, "r");
+    if (file == NULL) {
+        printf("Error opening file: %s\n", file_path);
+        return NULL;
+    }
+
+    if (fseek(file, 0, SEEK_END) != 0) {
+        printf("Error seeking to end of file: %s\n", file_path);
+        (void)fclose(file);
+        return NULL;
+    }
+
+    long ftell_size = ftell(file);
+    if (ftell_size == -1L) {
+        printf("Error reading size of file: %s\n", file_path);
+        (void)fclose(file);
+        return NULL;
+    }
+
+    if (fseek(file, 0, SEEK_SET) != 0) {
+        printf("Error seeking to beginning of file: %s\n", file_path);
+        (void)fclose(file);
+        return NULL;
+    }
+
+    size_t file_size = (size_t)ftell_size;
+    char *buffer = malloc(file_size + 1);
+    if (buffer == NULL) {
+        (void)fclose(file);
+        printf("Error allocating buffer for file: %s\n", file_path);
+        return NULL;
+    }
+
+    size_t bytes_read = fread(buffer, 1, file_size, file);
+    if (bytes_read != file_size) {
+        if (feof(file)) {
+            printf("Reached end-of-file before reading %zu bytes from file: %s\n",
+                   file_size,
+                   file_path);
+        } else if (ferror(file)) {
+            printf("Error reading file: %s\n", file_path);
+        } else {
+            printf("Expected to read %zu bytes got %zu from file: %s\n",
+                   file_size,
+                   bytes_read,
+                   file_path);
+        }
+
+        free(buffer);
+        (void)fclose(file);
+        return NULL;
+    }
+
+    (void)fclose(file);
+
+    buffer[file_size] = '\0';
+
+    return buffer;
+}
+
+int test_file(char *ledger_path) {
+    char *file_buffer = read_file(ledger_path);
+    if (file_buffer == NULL) {
+        printf("Error reading file\n");
+        return EXIT_FAILURE;
+    }
+
+    printf("%s\n", file_buffer);
+    return EXIT_SUCCESS;
+}
+
 int run_check(char *ledger_path) {
     (void)ledger_path;
     printf("Not implemented\n");
@@ -574,7 +646,12 @@ int main(int argc, char *argv[]) {
     }
 
     if (strcmp(command, "test") == 0) {
-        return test_data();
+        // return test_data();
+        char *ledger_path = get_ledger_path(argc, argv);
+        if (ledger_path == NULL) {
+            return EXIT_FAILURE;
+        }
+        return test_file(ledger_path);
     }
 
     printf("Unknown command: %s\n", command);
