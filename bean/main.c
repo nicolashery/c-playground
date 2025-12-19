@@ -695,6 +695,14 @@ Token scanner_next_token(Scanner *s) {
         }
     }
 
+    // Skip comments
+    if (c == ';') {
+        while (c != '\n' && c != '\0') {
+            s->current++;
+            c = *s->current;
+        }
+    }
+
     Token t = {0};
 
     // EOF
