@@ -658,11 +658,6 @@ void print_token(Token token) {
         return;
     }
 
-    if (token.type == TOKEN_INVALID) {
-        printf(" '%c'\n", *token.text.start);
-        return;
-    }
-
     if (token.type == TOKEN_INDENT) {
         printf(" (size %zu)\n", token.text.len);
         return;
@@ -687,8 +682,10 @@ Scanner scanner_init(char *buffer) {
     };
 }
 
-void scanner_skip_whitespace(Scanner *s) {
+Token scanner_next_token(Scanner *s) {
     char c = *s->current;
+
+    // Skip whitespace
     while (c != '\0') {
         if (c == ' ' || c == '\t') {
             s->current++;
@@ -697,19 +694,16 @@ void scanner_skip_whitespace(Scanner *s) {
             break;
         }
     }
-}
 
-Token scanner_next_token(Scanner *s) {
-    scanner_skip_whitespace(s);
-
-    char c = *s->current;
     Token t = {0};
 
+    // EOF
     if (c == '\0') {
         t.type = TOKEN_EOF;
         return t;
     }
 
+    // Newline
     if (c == '\n') {
         t.type = TOKEN_NEWLINE;
         t.text = (StringSlice){
@@ -722,6 +716,7 @@ Token scanner_next_token(Scanner *s) {
         return t;
     }
 
+    // Asterisk
     if (c == '*') {
         t.type = TOKEN_ASTERISK;
         t.text = (StringSlice){
@@ -733,6 +728,7 @@ Token scanner_next_token(Scanner *s) {
         return t;
     }
 
+    // Keyword
     if (islower(c)) {
         const char *start = s->current;
         while (islower(c)) {
@@ -749,14 +745,30 @@ Token scanner_next_token(Scanner *s) {
         return t;
     }
 
+    // Currency or Account
     if (isupper(c)) {
         const char *start = s->current;
+        bool all_uppercase = true;
+        bool has_colon = false;
         while (isalnum(c) || c == ':') {
+            if (islower(c)) {
+                all_uppercase = false;
+            } else if (c == ':') {
+                has_colon = true;
+            }
+
             s->current++;
             c = *s->current;
         }
 
-        t.type = TOKEN_ACCOUNT;
+        if (has_colon) {
+            t.type = TOKEN_ACCOUNT;
+        } else if (all_uppercase) {
+            t.type = TOKEN_CURRENCY;
+        } else {
+            t.type = TOKEN_INVALID;
+        }
+
         t.text = (StringSlice){
             .start = start,
             .len = (size_t)(s->current - start),
@@ -765,6 +777,7 @@ Token scanner_next_token(Scanner *s) {
         return t;
     }
 
+    // String
     if (c == '\"') {
         const char *start = s->current;
         bool invalid = false;
