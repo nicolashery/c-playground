@@ -7,6 +7,8 @@
 #define POSTING_ARRAY_INITIAL_CAPACITY 100
 #define TRANSACTION_ARRAY_INITIAL_CAPACITY 50
 
+#define MAX_TOKEN_LENGTH 256
+
 typedef struct {
     // Pointer into file buffer
     const char *start;
@@ -606,6 +608,70 @@ typedef struct {
     size_t line;
 } Token;
 
+void print_token(Token token) {
+    switch (token.type) {
+    case TOKEN_INVALID:
+        printf("TOKEN_INVALID");
+        break;
+    case TOKEN_DATE:
+        printf("TOKEN_DATE");
+        break;
+    case TOKEN_KEYWORD:
+        printf("TOKEN_KEYWORD");
+        break;
+    case TOKEN_ACCOUNT:
+        printf("TOKEN_ACCOUNT");
+        break;
+    case TOKEN_NUMBER:
+        printf("TOKEN_NUMBER");
+        break;
+    case TOKEN_CURRENCY:
+        printf("TOKEN_CURRENCY");
+        break;
+    case TOKEN_STRING:
+        printf("TOKEN_STRING");
+        break;
+    case TOKEN_ASTERISK:
+        printf("TOKEN_ASTERISK");
+        break;
+    case TOKEN_NEWLINE:
+        printf("TOKEN_NEWLINE");
+        break;
+    case TOKEN_INDENT:
+        printf("TOKEN_INDENT");
+        break;
+    case TOKEN_EOF:
+        printf("TOKEN_EOF");
+        break;
+    }
+
+    if (token.type == TOKEN_EOF) {
+        printf("\n");
+        return;
+    }
+
+    printf(" [line %zu]", token.line);
+
+    if (token.type == TOKEN_NEWLINE) {
+        printf("\n");
+        return;
+    }
+
+    if (token.type == TOKEN_INVALID) {
+        printf(" '%c'\n", *token.text.start);
+        return;
+    }
+
+    if (token.type == TOKEN_INDENT) {
+        printf(" (size %zu)\n", token.text.len);
+        return;
+    }
+
+    char token_text[MAX_TOKEN_LENGTH] = {0};
+    (void)snprintf(token_text, MAX_TOKEN_LENGTH, "%.*s", (int)token.text.len, token.text.start);
+    printf(" %s\n", token_text);
+}
+
 typedef struct {
     const char *buffer;
     const char *current;
@@ -638,6 +704,11 @@ Token scanner_next_token(Scanner *s) {
     char c = *s->current;
     Token t = {0};
 
+    if (c == '\0') {
+        t.type = TOKEN_EOF;
+        return t;
+    }
+
     if (c == '\n') {
         t.type = TOKEN_NEWLINE;
         t.text = (StringSlice){
@@ -645,15 +716,19 @@ Token scanner_next_token(Scanner *s) {
             .len = 1,
         };
         t.line = s->line;
-
         s->current++;
         s->line++;
-
         return t;
     }
 
-    if (c == '\0') {
-        t.type = TOKEN_EOF;
+    if (c == '*') {
+        t.type = TOKEN_ASTERISK;
+        t.text = (StringSlice){
+            .start = s->current,
+            .len = 1,
+        };
+        t.line = s->line;
+        s->current++;
         return t;
     }
 
@@ -666,6 +741,27 @@ Token scanner_next_token(Scanner *s) {
     s->current++;
 
     return t;
+}
+
+int test_scanner(char *ledger_path) {
+    char *file_buffer = read_file(ledger_path);
+    if (file_buffer == NULL) {
+        printf("Error reading file\n");
+        return EXIT_FAILURE;
+    }
+
+    Scanner scanner = scanner_init(file_buffer);
+    Token token = {0};
+    for (;;) {
+        token = scanner_next_token(&scanner);
+        print_token(token);
+
+        if (token.type == TOKEN_EOF) {
+            break;
+        }
+    }
+
+    return EXIT_SUCCESS;
 }
 
 int run_check(char *ledger_path) {
@@ -735,7 +831,8 @@ int main(int argc, char *argv[]) {
         if (ledger_path == NULL) {
             return EXIT_FAILURE;
         }
-        return test_file(ledger_path);
+        // return test_file(ledger_path);
+        return test_scanner(ledger_path);
     }
 
     printf("Unknown command: %s\n", command);
