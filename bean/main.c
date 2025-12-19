@@ -568,6 +568,8 @@ char *read_file(char *file_path) {
 
     (void)fclose(file);
 
+    // buffer capacity = file_size + 1, so this is safe
+    // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound)
     buffer[file_size] = '\0';
 
     return buffer;
@@ -582,6 +584,88 @@ int test_file(char *ledger_path) {
 
     printf("%s\n", file_buffer);
     return EXIT_SUCCESS;
+}
+
+typedef enum {
+    TOKEN_INVALID,
+    TOKEN_DATE,     // 2014-01-01
+    TOKEN_KEYWORD,  // commodity, open, txn
+    TOKEN_ACCOUNT,  // Assets:Checking
+    TOKEN_NUMBER,   // -45.12
+    TOKEN_CURRENCY, // USD
+    TOKEN_STRING,   // "Groceries"
+    TOKEN_ASTERISK, // *
+    TOKEN_NEWLINE,  // \n
+    TOKEN_INDENT,   // leading whitespace
+    TOKEN_EOF,      // end of file
+} TokenType;
+
+typedef struct {
+    TokenType type;
+    StringSlice text;
+    size_t line;
+} Token;
+
+typedef struct {
+    const char *buffer;
+    const char *current;
+    size_t line;
+} Scanner;
+
+Scanner scanner_init(char *buffer) {
+    return (Scanner){
+        .buffer = buffer,
+        .current = buffer,
+        .line = 1,
+    };
+}
+
+void scanner_skip_whitespace(Scanner *s) {
+    char c = *s->current;
+    while (c != '\0') {
+        if (c == ' ' || c == '\t') {
+            s->current++;
+            c = *s->current;
+        } else {
+            break;
+        }
+    }
+}
+
+Token scanner_next_token(Scanner *s) {
+    scanner_skip_whitespace(s);
+
+    char c = *s->current;
+    Token t = {0};
+
+    if (c == '\n') {
+        t.type = TOKEN_NEWLINE;
+        t.text = (StringSlice){
+            .start = s->current,
+            .len = 1,
+        };
+        t.line = s->line;
+
+        s->current++;
+        s->line++;
+
+        return t;
+    }
+
+    if (c == '\0') {
+        t.type = TOKEN_EOF;
+        return t;
+    }
+
+    t.type = TOKEN_INVALID;
+    t.text = (StringSlice){
+        .start = s->current,
+        .len = 1,
+    };
+    t.line = s->line;
+    s->current++;
+
+    return t;
 }
 
 int run_check(char *ledger_path) {
