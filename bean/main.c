@@ -682,10 +682,9 @@ Scanner scanner_init(char *buffer) {
     };
 }
 
-Token scanner_next_token(Scanner *s) {
+void scanner_skip_whitespace(Scanner *s) {
     char c = *s->current;
 
-    // Skip whitespace
     while (c != '\0') {
         if (c == ' ' || c == '\t') {
             s->current++;
@@ -694,15 +693,41 @@ Token scanner_next_token(Scanner *s) {
             break;
         }
     }
+}
 
-    // Skip comments
-    if (c == ';') {
+void scanner_skip_comments(Scanner *s) {
+    char c = *s->current;
+
+    // Consume multiple lines of consecutive comments
+    while (c == ';') {
         while (c != '\n' && c != '\0') {
             s->current++;
             c = *s->current;
         }
-    }
 
+        // Check if next line is also a comment
+        if (c == '\n') {
+            const char *start = s->current;
+            s->current++;
+            scanner_skip_whitespace(s);
+            c = *s->current;
+            if (c == ';') {
+                s->line++;
+            } else {
+                // Backtrack if not
+                s->current = start;
+                c = *s->current;
+            }
+        }
+    }
+}
+
+Token scanner_next_token(Scanner *s) {
+
+    scanner_skip_whitespace(s);
+    scanner_skip_comments(s);
+
+    char c = *s->current;
     Token t = {0};
 
     // EOF
