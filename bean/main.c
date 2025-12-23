@@ -7,8 +7,10 @@
 #define ACCOUNT_ARRAY_INITIAL_CAPACITY 20
 #define POSTING_ARRAY_INITIAL_CAPACITY 100
 #define TRANSACTION_ARRAY_INITIAL_CAPACITY 50
+#define TOKEN_ARRAY_INITIAL_CAPACITY 100
 
 #define MAX_TOKEN_LENGTH 256
+#define MAX_ERROR_MESSAGE_LENGTH 256
 
 typedef struct {
     // Pointer into file buffer
@@ -282,6 +284,7 @@ void transaction_array_push(TransactionArray *arr, Transaction value) {
 }
 
 typedef struct {
+    // Ownership: File buffer is not owned by Ledger and needs to be freed by caller
     char *file_buffer;
     StringSliceArray *currencies;
     AccountArray *accounts;
@@ -289,48 +292,40 @@ typedef struct {
     TransactionArray *transactions;
 } Ledger;
 
-Ledger *ledger_create() {
+Ledger *ledger_create(char *file_buffer) {
     Ledger *ledger = malloc(sizeof(Ledger));
     if (ledger == NULL) {
         return NULL;
     }
 
-    ledger->file_buffer = malloc(1024);
-    if (ledger->file_buffer == NULL) {
-        free(ledger);
-        return NULL;
-    }
+    ledger->file_buffer = file_buffer;
 
     ledger->currencies = string_slice_array_create(CURRENCY_ARRAY_INITIAL_CAPACITY);
     if (ledger->currencies == NULL) {
-        free(ledger->file_buffer);
         free(ledger);
         return NULL;
     }
 
     ledger->accounts = account_array_create(ACCOUNT_ARRAY_INITIAL_CAPACITY);
     if (ledger->accounts == NULL) {
-        free(ledger->file_buffer);
-        free(ledger->currencies);
+        string_slice_array_free(ledger->currencies);
         free(ledger);
         return NULL;
     }
 
     ledger->postings = posting_array_create(POSTING_ARRAY_INITIAL_CAPACITY);
     if (ledger->postings == NULL) {
-        free(ledger->file_buffer);
-        free(ledger->currencies);
-        free(ledger->accounts);
+        string_slice_array_free(ledger->currencies);
+        account_array_free(ledger->accounts);
         free(ledger);
         return NULL;
     }
 
     ledger->transactions = transaction_array_create(TRANSACTION_ARRAY_INITIAL_CAPACITY);
     if (ledger->transactions == NULL) {
-        free(ledger->file_buffer);
-        free(ledger->currencies);
-        free(ledger->accounts);
-        free(ledger->postings);
+        string_slice_array_free(ledger->currencies);
+        account_array_free(ledger->accounts);
+        posting_array_free(ledger->postings);
         free(ledger);
         return NULL;
     }
@@ -343,21 +338,27 @@ void ledger_free(Ledger *ledger) {
         return;
     }
 
-    free(ledger->file_buffer);
-    free(ledger->currencies);
-    free(ledger->accounts);
-    free(ledger->postings);
+    string_slice_array_free(ledger->currencies);
+    account_array_free(ledger->accounts);
+    posting_array_free(ledger->postings);
     transaction_array_free(ledger->transactions);
     free(ledger);
 }
 
-int test_data() {
+int test_ledger() {
 // Ignore warnings for sprintf
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    Ledger *l = ledger_create();
+    char *file_buffer = malloc(1024);
+    if (file_buffer == NULL) {
+        printf("Error allocating file buffer\n");
+        return EXIT_FAILURE;
+    }
+
+    Ledger *l = ledger_create(file_buffer);
     if (l == NULL) {
         printf("Error allocating ledger\n");
+        free(file_buffer);
         return EXIT_FAILURE;
     }
 
@@ -366,7 +367,7 @@ int test_data() {
     Posting posting;
     Transaction txn;
 
-    char *cursor = l->file_buffer;
+    char *cursor = file_buffer;
 
     cursor += sprintf(cursor, "2014-01-01 commodity ");
 
@@ -511,6 +512,8 @@ int test_data() {
     printf("%s\n", l->file_buffer);
 
     ledger_free(l);
+    free(file_buffer);
+
     return EXIT_SUCCESS;
 #pragma clang diagnostic pop
 }
@@ -586,6 +589,7 @@ int test_file(char *ledger_path) {
     }
 
     printf("%s\n", file_buffer);
+    free(file_buffer);
     return EXIT_SUCCESS;
 }
 
@@ -608,6 +612,57 @@ typedef struct {
     StringSlice text;
     size_t line;
 } Token;
+
+typedef struct {
+    Token *data;
+    size_t size;
+    size_t capacity;
+} TokenArray;
+
+TokenArray *token_array_create(size_t capacity) {
+    TokenArray *arr = malloc(sizeof(TokenArray));
+    if (arr == NULL) {
+        return NULL;
+    }
+
+    arr->data = malloc(capacity * sizeof(Token));
+    if (arr->data == NULL) {
+        free(arr);
+        return NULL;
+    }
+
+    arr->size = 0;
+    arr->capacity = capacity;
+    return arr;
+}
+
+void token_array_free(TokenArray *arr) {
+    if (arr == NULL) {
+        return;
+    }
+
+    free(arr->data);
+    free(arr);
+}
+
+void token_array_push(TokenArray *arr, Token value) {
+    if (arr->size < arr->capacity) {
+        arr->data[arr->size] = value;
+        arr->size++;
+        return;
+    }
+
+    size_t new_capacity = arr->capacity * 2;
+    Token *new_data = realloc(arr->data, new_capacity * sizeof(Token));
+    if (new_data == NULL) {
+        return;
+    }
+
+    arr->data = new_data;
+    arr->data[arr->size] = value;
+    arr->size++;
+    arr->capacity = new_capacity;
+}
 
 void print_token(Token token) {
     switch (token.type) {
@@ -669,6 +724,7 @@ void print_token(Token token) {
 }
 
 typedef struct {
+    // Ownership: Buffer is not owned by Scanner and needs to be free by caller
     const char *buffer;
     const char *current;
     size_t line;
@@ -994,6 +1050,71 @@ int test_scanner(char *ledger_path) {
         }
     }
 
+    free(file_buffer);
+
+    return EXIT_SUCCESS;
+}
+
+typedef struct {
+    // Ownership: Token array is not owned by Parser and needs to be freed by caller
+    TokenArray *tokens;
+    size_t current;
+    Ledger *ledger;
+    bool has_error;
+    char error_message[MAX_ERROR_MESSAGE_LENGTH];
+    size_t error_line;
+} Parser;
+
+Parser parser_init(TokenArray *tokens, Ledger *ledger) {
+    Parser parser = {0};
+
+    parser.tokens = tokens;
+    parser.ledger = ledger;
+
+    return parser;
+}
+
+int test_parser(char *ledger_path) {
+    char *file_buffer = read_file(ledger_path);
+    if (file_buffer == NULL) {
+        printf("Error reading file\n");
+        return EXIT_FAILURE;
+    }
+
+    Ledger *ledger = ledger_create(file_buffer);
+    if (ledger == NULL) {
+        printf("Error allocating ledger\n");
+        free(file_buffer);
+        return EXIT_FAILURE;
+    }
+
+    TokenArray *tokens = token_array_create(TOKEN_ARRAY_INITIAL_CAPACITY);
+    if (tokens == NULL) {
+        printf("Error allocating token array\n");
+        free(file_buffer);
+        ledger_free(ledger);
+        return EXIT_FAILURE;
+    }
+
+    Scanner scanner = scanner_init(file_buffer);
+    Token token = {0};
+    for (;;) {
+        token = scanner_next_token(&scanner);
+        token_array_push(tokens, token);
+
+        if (token.type == TOKEN_EOF) {
+            break;
+        }
+    }
+
+    Parser parser = parser_init(tokens, ledger);
+    printf("TEST PARSER\n");
+    printf("Token count: %zu\n", parser.tokens->size);
+
+    free(file_buffer);
+    ledger_free(ledger);
+    token_array_free(tokens);
+
     return EXIT_SUCCESS;
 }
 
@@ -1059,13 +1180,14 @@ int main(int argc, char *argv[]) {
     }
 
     if (strcmp(command, "test") == 0) {
-        // return test_data();
+        // return test_ledger();
         char *ledger_path = get_ledger_path(argc, argv);
         if (ledger_path == NULL) {
             return EXIT_FAILURE;
         }
         // return test_file(ledger_path);
-        return test_scanner(ledger_path);
+        // return test_scanner(ledger_path);
+        return test_parser(ledger_path);
     }
 
     printf("Unknown command: %s\n", command);
