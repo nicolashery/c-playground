@@ -10,6 +10,7 @@
 #define TRANSACTION_ARRAY_INITIAL_CAPACITY 50
 #define TOKEN_ARRAY_INITIAL_CAPACITY 100
 
+#define MAX_TOKEN_TYPE_LENGTH 16
 #define MAX_TOKEN_LENGTH 256
 #define MAX_ERROR_MESSAGE_LENGTH 256
 
@@ -22,6 +23,36 @@ typedef struct {
 
 void print_slice(StringSlice slice) {
     printf("%.*s", (int)slice.len, slice.start);
+}
+
+void slice_to_cstr(StringSlice slice, char *buffer, size_t buffer_size) {
+    assert(buffer_size > slice.len && "Buffer size needs to be greater than slice length");
+    (void)snprintf(buffer, buffer_size, "%.*s", (int)slice.len, slice.start);
+}
+
+bool slice_equals_cstr(StringSlice slice, char *str) {
+    size_t str_len = strlen(str);
+    if (slice.len != str_len) {
+        return false;
+    }
+
+    if (memcmp(slice.start, str, slice.len) != 0) {
+        return false;
+    }
+
+    return true;
+}
+
+bool slice_equals(StringSlice s1, StringSlice s2) {
+    if (s1.len != s2.len) {
+        return false;
+    }
+
+    if (memcmp(s1.start, s2.start, s1.len) != 0) {
+        return false;
+    }
+
+    return true;
 }
 
 typedef struct {
@@ -38,6 +69,7 @@ typedef struct {
 } Amount;
 
 typedef enum {
+    ACCOUNT_TYPE_INVALID,
     ASSETS,
     LIABILITIES,
     EQUITY,
@@ -50,6 +82,41 @@ typedef struct {
     // Full account name, including type prefix (ex: "Assets:")
     StringSlice name;
 } Account;
+
+StringSlice account_extract_root(StringSlice name) {
+    size_t i = 0;
+    while (i < name.len) {
+        if (name.start[i] == ':') {
+            break;
+        }
+        i++;
+    }
+
+    return (StringSlice){
+        .start = name.start,
+        .len = i,
+    };
+}
+
+AccountType account_extract_type(StringSlice name) {
+    StringSlice root = account_extract_root(name);
+    if (slice_equals_cstr(root, "Assets")) {
+        return ASSETS;
+    }
+    if (slice_equals_cstr(root, "Liabilities")) {
+        return LIABILITIES;
+    }
+    if (slice_equals_cstr(root, "Equity")) {
+        return EQUITY;
+    }
+    if (slice_equals_cstr(root, "Income")) {
+        return INCOME;
+    }
+    if (slice_equals_cstr(root, "Expenses")) {
+        return EXPENSES;
+    }
+    return ACCOUNT_TYPE_INVALID;
+}
 
 typedef struct {
     // Index into an array of accounts
@@ -119,13 +186,14 @@ void string_slice_array_push(StringSliceArray *arr, StringSlice value) {
         return;
     }
 
-    size_t new_capacity = arr->capacity * 2;
+    size_t new_capacity = arr->capacity == 0 ? 1 : arr->capacity * 2;
     StringSlice *new_data = realloc(arr->data, new_capacity * sizeof(StringSlice));
     if (new_data == NULL) {
         return;
     }
 
     arr->data = new_data;
+    // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound)
     arr->data[arr->size] = value;
     arr->size++;
     arr->capacity = new_capacity;
@@ -170,13 +238,14 @@ void account_array_push(AccountArray *arr, Account value) {
         return;
     }
 
-    size_t new_capacity = arr->capacity * 2;
+    size_t new_capacity = arr->capacity == 0 ? 1 : arr->capacity * 2;
     Account *new_data = realloc(arr->data, new_capacity * sizeof(Account));
     if (new_data == NULL) {
         return;
     }
 
     arr->data = new_data;
+    // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound)
     arr->data[arr->size] = value;
     arr->size++;
     arr->capacity = new_capacity;
@@ -221,13 +290,14 @@ void posting_array_push(PostingArray *arr, Posting value) {
         return;
     }
 
-    size_t new_capacity = arr->capacity * 2;
+    size_t new_capacity = arr->capacity == 0 ? 1 : arr->capacity * 2;
     Posting *new_data = realloc(arr->data, new_capacity * sizeof(Posting));
     if (new_data == NULL) {
         return;
     }
 
     arr->data = new_data;
+    // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound)
     arr->data[arr->size] = value;
     arr->size++;
     arr->capacity = new_capacity;
@@ -272,13 +342,14 @@ void transaction_array_push(TransactionArray *arr, Transaction value) {
         return;
     }
 
-    size_t new_capacity = arr->capacity * 2;
+    size_t new_capacity = arr->capacity == 0 ? 1 : arr->capacity * 2;
     Transaction *new_data = realloc(arr->data, new_capacity * sizeof(Transaction));
     if (new_data == NULL) {
         return;
     }
 
     arr->data = new_data;
+    // NOLINTNEXTLINE(clang-analyzer-security.ArrayBound)
     arr->data[arr->size] = value;
     arr->size++;
     arr->capacity = new_capacity;
@@ -344,6 +415,61 @@ void ledger_free(Ledger *ledger) {
     posting_array_free(ledger->postings);
     transaction_array_free(ledger->transactions);
     free(ledger);
+}
+
+void print_ledger(Ledger *l) {
+    printf("=================================\n");
+    printf("Currencies\n");
+    printf("=================================\n");
+    for (size_t i = 0; i < l->currencies->size; i++) {
+        print_slice(l->currencies->data[i]);
+        printf("\n");
+    }
+    printf("\n");
+
+    printf("=================================\n");
+    printf("Accounts\n");
+    printf("=================================\n");
+    for (size_t i = 0; i < l->accounts->size; i++) {
+        print_slice(l->accounts->data[i].name);
+        printf("\n");
+    }
+    printf("\n");
+
+    printf("=================================\n");
+    printf("Transactions\n");
+    printf("=================================\n");
+    for (size_t i = 0; i < l->transactions->size; i++) {
+        Transaction t = l->transactions->data[i];
+        printf("Date: %d-%02d-%02d\n", t.date.year, t.date.month, t.date.day);
+        printf("Payee: ");
+        if (t.payee.start == NULL) {
+            printf("NULL\n");
+        } else {
+            print_slice(t.payee);
+            printf("\n");
+        }
+        printf("Narration: ");
+        print_slice(t.narration);
+        printf("\n");
+        printf("Postings:\n");
+        for (size_t j = 0; j < t.postings_count; j++) {
+            Posting p = l->postings->data[t.postings_start_index + j];
+            printf(" ");
+            print_slice(l->accounts->data[p.account_index].name);
+            printf(" ");
+            printf("%ld", p.amount.number);
+            printf(" cents ");
+            print_slice(l->currencies->data[p.amount.currency_index]);
+            printf("\n");
+        }
+    }
+    printf("\n");
+
+    printf("=================================\n");
+    printf("File buffer\n");
+    printf("=================================\n");
+    printf("%s\n", l->file_buffer);
 }
 
 int test_ledger() {
@@ -459,58 +585,7 @@ int test_ledger() {
 
     transaction_array_push(l->transactions, txn);
 
-    printf("=================================\n");
-    printf("Currencies\n");
-    printf("=================================\n");
-    for (size_t i = 0; i < l->currencies->size; i++) {
-        print_slice(l->currencies->data[i]);
-        printf("\n");
-    }
-    printf("\n");
-
-    printf("=================================\n");
-    printf("Accounts\n");
-    printf("=================================\n");
-    for (size_t i = 0; i < l->accounts->size; i++) {
-        print_slice(l->accounts->data[i].name);
-        printf("\n");
-    }
-    printf("\n");
-
-    printf("=================================\n");
-    printf("Transactions\n");
-    printf("=================================\n");
-    for (size_t i = 0; i < l->transactions->size; i++) {
-        Transaction t = l->transactions->data[i];
-        printf("Date: %d-%02d-%02d\n", t.date.year, t.date.month, t.date.day);
-        printf("Payee: ");
-        if (t.payee.start == NULL) {
-            printf("NULL\n");
-        } else {
-            print_slice(t.payee);
-            printf("\n");
-        }
-        printf("Narration: ");
-        print_slice(t.narration);
-        printf("\n");
-        printf("Postings:\n");
-        for (size_t j = 0; j < t.postings_count; j++) {
-            posting = l->postings->data[t.postings_start_index + j];
-            printf(" ");
-            print_slice(l->accounts->data[posting.account_index].name);
-            printf(" ");
-            printf("%ld", posting.amount.number);
-            printf(" cents ");
-            print_slice(l->currencies->data[posting.amount.currency_index]);
-            printf("\n");
-        }
-    }
-    printf("\n");
-
-    printf("=================================\n");
-    printf("File buffer\n");
-    printf("=================================\n");
-    printf("%s\n", l->file_buffer);
+    print_ledger(l);
 
     ledger_free(l);
     free(file_buffer);
@@ -608,6 +683,35 @@ typedef enum {
     TOKEN_EOF,      // end of file
 } TokenType;
 
+char *token_type_to_string(TokenType type) {
+    switch (type) {
+    case TOKEN_INVALID:
+        return "INVALID";
+    case TOKEN_DATE:
+        return "DATE";
+    case TOKEN_KEYWORD:
+        return "KEYWORD";
+    case TOKEN_ACCOUNT:
+        return "ACCOUNT";
+    case TOKEN_NUMBER:
+        return "NUMBER";
+    case TOKEN_CURRENCY:
+        return "CURRENCY";
+    case TOKEN_STRING:
+        return "STRING";
+    case TOKEN_ASTERISK:
+        return "ASTERISK";
+    case TOKEN_NEWLINE:
+        return "NEWLINE";
+    case TOKEN_INDENT:
+        return "INDENT";
+    case TOKEN_EOF:
+        return "EOF";
+    default:
+        return "UNKNOWN";
+    }
+}
+
 typedef struct {
     TokenType type;
     StringSlice text;
@@ -666,41 +770,7 @@ void token_array_push(TokenArray *arr, Token value) {
 }
 
 void print_token(Token token) {
-    switch (token.type) {
-    case TOKEN_INVALID:
-        printf("TOKEN_INVALID");
-        break;
-    case TOKEN_DATE:
-        printf("TOKEN_DATE");
-        break;
-    case TOKEN_KEYWORD:
-        printf("TOKEN_KEYWORD");
-        break;
-    case TOKEN_ACCOUNT:
-        printf("TOKEN_ACCOUNT");
-        break;
-    case TOKEN_NUMBER:
-        printf("TOKEN_NUMBER");
-        break;
-    case TOKEN_CURRENCY:
-        printf("TOKEN_CURRENCY");
-        break;
-    case TOKEN_STRING:
-        printf("TOKEN_STRING");
-        break;
-    case TOKEN_ASTERISK:
-        printf("TOKEN_ASTERISK");
-        break;
-    case TOKEN_NEWLINE:
-        printf("TOKEN_NEWLINE");
-        break;
-    case TOKEN_INDENT:
-        printf("TOKEN_INDENT");
-        break;
-    case TOKEN_EOF:
-        printf("TOKEN_EOF");
-        break;
-    }
+    printf("%s", token_type_to_string(token.type));
 
     if (token.type == TOKEN_EOF) {
         printf("\n");
@@ -720,7 +790,7 @@ void print_token(Token token) {
     }
 
     char token_text[MAX_TOKEN_LENGTH] = {0};
-    (void)snprintf(token_text, MAX_TOKEN_LENGTH, "%.*s", (int)token.text.len, token.text.start);
+    slice_to_cstr(token.text, token_text, MAX_TOKEN_LENGTH);
     printf(" %s\n", token_text);
 }
 
@@ -1106,14 +1176,127 @@ Token *parser_expect(Parser *p, TokenType token_type) {
         (void)snprintf(p->error_message,
                        MAX_ERROR_MESSAGE_LENGTH,
                        "Expected token %s got %s",
-                       "TODO: print token_type",
-                       "TODO: print t->type");
+                       token_type_to_string(token_type),
+                       token_type_to_string(t->type));
         p->error_line = t->line;
         return NULL;
     }
 
     parser_advance(p);
     return t;
+}
+
+Date parse_date(StringSlice text) {
+    assert(text.len == 10 && "Date string must be of length 10");
+
+    char buf[11];
+    memcpy(buf, text.start, 10);
+    buf[10] = '\0';
+
+    long year = strtol(buf, NULL, 10);
+    long month = strtol(buf + 5, NULL, 10);
+    long day = strtol(buf + 8, NULL, 10);
+
+    return (Date){
+        .year = (int)year,
+        .month = (int)month,
+        .day = (int)day,
+    };
+}
+
+void parse_open_directive(Parser *p) {
+    Token *t;
+
+    // Parse date
+    t = parser_expect(p, TOKEN_DATE);
+    if (p->has_error) {
+        return;
+    }
+    (void)parse_date(t->text);
+
+    // Parse "open" keyword
+    t = parser_expect(p, TOKEN_KEYWORD);
+    if (p->has_error) {
+        return;
+    }
+    StringSlice keyword = t->text;
+    if (!slice_equals_cstr(keyword, "open")) {
+        p->has_error = true;
+        char keyword_buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(keyword, keyword_buf, MAX_TOKEN_LENGTH);
+        (void)snprintf(p->error_message,
+                       MAX_ERROR_MESSAGE_LENGTH,
+                       "Expected keyword 'open' got '%s'",
+                       keyword_buf);
+        p->error_line = t->line;
+        return;
+    };
+
+    // Parse account
+    t = parser_expect(p, TOKEN_ACCOUNT);
+    if (p->has_error) {
+        return;
+    }
+    StringSlice account_name = t->text;
+    StringSlice account_root = account_extract_root(account_name);
+    AccountType account_type = account_extract_type(account_root);
+    if (account_type == ACCOUNT_TYPE_INVALID) {
+        p->has_error = true;
+        char account_root_buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(account_root, account_root_buf, MAX_TOKEN_LENGTH);
+        (void)snprintf(p->error_message,
+                       MAX_ERROR_MESSAGE_LENGTH,
+                       "Invalid account type '%s'",
+                       account_root_buf);
+        p->error_line = t->line;
+        return;
+    }
+    Ledger *l = p->ledger;
+    bool account_already_exists = false;
+    for (size_t i = 0; i < l->accounts->size; i++) {
+        if (slice_equals(l->accounts->data[i].name, account_name)) {
+            account_already_exists = true;
+            break;
+        }
+    }
+    if (account_already_exists) {
+        p->has_error = true;
+        char account_name_buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(account_name, account_name_buf, MAX_TOKEN_LENGTH);
+        (void)snprintf(p->error_message,
+                       MAX_ERROR_MESSAGE_LENGTH,
+                       "Account with name '%s' already opened",
+                       account_name_buf);
+        p->error_line = t->line;
+        return;
+    }
+    Account account = {
+        .type = account_type,
+        .name = account_name,
+    };
+
+    t = parser_current_token(p);
+    if (t->type != TOKEN_NEWLINE && t->type != TOKEN_EOF) {
+        p->has_error = true;
+        (void)snprintf(p->error_message,
+                       MAX_ERROR_MESSAGE_LENGTH,
+                       "Expected newline or EOF after open directive");
+        p->error_line = t->line;
+        return;
+    }
+    if (t->type == TOKEN_NEWLINE) {
+        parser_advance(p);
+    }
+
+    account_array_push(l->accounts, account);
+}
+
+void parser_print_error(Parser *p) {
+    if (!p->has_error) {
+        return;
+    }
+
+    printf("Parse error: %s (line %zu)\n", p->error_message, p->error_line);
 }
 
 int test_parser(char *ledger_path) {
@@ -1150,8 +1333,45 @@ int test_parser(char *ledger_path) {
     }
 
     Parser parser = parser_init(tokens, ledger);
-    printf("TEST PARSER\n");
-    printf("Token count: %zu\n", parser.tokens->size);
+    for (;;) {
+        Token *t = parser_current_token(&parser);
+        if (t->type == TOKEN_EOF) {
+            break;
+        }
+
+        if (t->type == TOKEN_INVALID) {
+            parser.has_error = true;
+            char token_buf[MAX_TOKEN_LENGTH] = {0};
+            slice_to_cstr(t->text, token_buf, MAX_TOKEN_LENGTH);
+            (void)snprintf(
+                parser.error_message, MAX_ERROR_MESSAGE_LENGTH, "Invalid token '%s'", token_buf);
+            parser.error_line = t->line;
+            parser_print_error(&parser);
+            break;
+        }
+
+        bool matched = false;
+        if (t->type == TOKEN_DATE) {
+            Token *next = parser_peek(&parser);
+            if (next->type == TOKEN_KEYWORD) {
+                if (slice_equals_cstr(next->text, "open")) {
+                    parse_open_directive(&parser);
+                    matched = true;
+                }
+            }
+        }
+
+        if (!matched) {
+            // TODO: this is probably not needed after all parse functions implemented
+            // for now and testing, drop tokens
+            parser_advance(&parser);
+        } else if (parser.has_error) {
+            parser_print_error(&parser);
+            break;
+        }
+    }
+
+    print_ledger(parser.ledger);
 
     free(file_buffer);
     ledger_free(ledger);
