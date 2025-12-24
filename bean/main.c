@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1066,12 +1067,53 @@ typedef struct {
 } Parser;
 
 Parser parser_init(TokenArray *tokens, Ledger *ledger) {
+    assert(tokens->data[tokens->size - 1].type == TOKEN_EOF && "Tokens must end with EOF");
+
     Parser parser = {0};
 
     parser.tokens = tokens;
     parser.ledger = ledger;
 
     return parser;
+}
+
+Token *parser_current_token(Parser *p) {
+    return &p->tokens->data[p->current];
+}
+
+Token *parser_peek(Parser *p) {
+    size_t next = p->current + 1;
+    if (next >= p->tokens->size) {
+        return &p->tokens->data[p->current];
+    }
+
+    return &p->tokens->data[next];
+}
+
+void parser_advance(Parser *p) {
+    size_t next = p->current + 1;
+    if (next >= p->tokens->size) {
+        return;
+    }
+
+    p->current = next;
+}
+
+Token *parser_expect(Parser *p, TokenType token_type) {
+    Token *t = parser_current_token(p);
+    if (t->type != token_type) {
+        p->has_error = true;
+        (void)snprintf(p->error_message,
+                       MAX_ERROR_MESSAGE_LENGTH,
+                       "Expected token %s got %s",
+                       "TODO: print token_type",
+                       "TODO: print t->type");
+        p->error_line = t->line;
+        return NULL;
+    }
+
+    parser_advance(p);
+    return t;
 }
 
 int test_parser(char *ledger_path) {
