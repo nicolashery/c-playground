@@ -464,12 +464,15 @@ void print_ledger(Ledger *l) {
             printf("\n");
         }
     }
+}
+
+void print_file_buffer(char *file_buffer) {
     printf("\n");
 
     printf("=================================\n");
     printf("File buffer\n");
     printf("=================================\n");
-    printf("%s\n", l->file_buffer);
+    printf("%s\n", file_buffer);
 }
 
 int test_ledger() {
@@ -586,6 +589,8 @@ int test_ledger() {
     transaction_array_push(l->transactions, txn);
 
     print_ledger(l);
+    printf("\n");
+    print_file_buffer(file_buffer);
 
     ledger_free(l);
     free(file_buffer);
@@ -1131,6 +1136,7 @@ typedef struct {
     TokenArray *tokens;
     size_t current;
     Ledger *ledger;
+    bool is_eof;
     bool has_error;
     char error_message[MAX_ERROR_MESSAGE_LENGTH];
     size_t error_line;
@@ -1369,6 +1375,43 @@ void parser_print_error(Parser *p) {
     printf("Parse error: %s (line %zu)\n", p->error_message, p->error_line);
 }
 
+void parse_next(Parser *p) {
+    Token *t = parser_current_token(p);
+    if (t->type == TOKEN_EOF) {
+        p->is_eof = true;
+        return;
+    }
+
+    if (t->type == TOKEN_INVALID) {
+        p->has_error = true;
+        char token_buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(t->text, token_buf, MAX_TOKEN_LENGTH);
+        (void)snprintf(p->error_message, MAX_ERROR_MESSAGE_LENGTH, "Invalid token '%s'", token_buf);
+        p->error_line = t->line;
+        return;
+    }
+
+    bool matched = false;
+    if (t->type == TOKEN_DATE) {
+        Token *next = parser_peek(p);
+        if (next->type == TOKEN_KEYWORD) {
+            if (slice_equals_cstr(next->text, "commodity")) {
+                parse_commodity_directive(p);
+                matched = true;
+            } else if (slice_equals_cstr(next->text, "open")) {
+                parse_open_directive(p);
+                matched = true;
+            }
+        }
+    }
+
+    if (!matched) {
+        // TODO: this is probably not needed after all parse functions implemented
+        // for now and testing, drop tokens
+        parser_advance(p);
+    }
+}
+
 int test_parser(char *ledger_path) {
     char *file_buffer = read_file(ledger_path);
     if (file_buffer == NULL) {
@@ -1404,41 +1447,13 @@ int test_parser(char *ledger_path) {
 
     Parser parser = parser_init(tokens, ledger);
     for (;;) {
-        Token *t = parser_current_token(&parser);
-        if (t->type == TOKEN_EOF) {
+        parse_next(&parser);
+
+        if (parser.is_eof) {
             break;
         }
 
-        if (t->type == TOKEN_INVALID) {
-            parser.has_error = true;
-            char token_buf[MAX_TOKEN_LENGTH] = {0};
-            slice_to_cstr(t->text, token_buf, MAX_TOKEN_LENGTH);
-            (void)snprintf(
-                parser.error_message, MAX_ERROR_MESSAGE_LENGTH, "Invalid token '%s'", token_buf);
-            parser.error_line = t->line;
-            parser_print_error(&parser);
-            break;
-        }
-
-        bool matched = false;
-        if (t->type == TOKEN_DATE) {
-            Token *next = parser_peek(&parser);
-            if (next->type == TOKEN_KEYWORD) {
-                if (slice_equals_cstr(next->text, "commodity")) {
-                    parse_commodity_directive(&parser);
-                    matched = true;
-                } else if (slice_equals_cstr(next->text, "open")) {
-                    parse_open_directive(&parser);
-                    matched = true;
-                }
-            }
-        }
-
-        if (!matched) {
-            // TODO: this is probably not needed after all parse functions implemented
-            // for now and testing, drop tokens
-            parser_advance(&parser);
-        } else if (parser.has_error) {
+        if (parser.has_error) {
             parser_print_error(&parser);
             break;
         }
