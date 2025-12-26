@@ -1204,6 +1204,76 @@ Date parse_date(StringSlice text) {
     };
 }
 
+void parse_commodity_directive(Parser *p) {
+    Token *t;
+
+    // Parse date
+    t = parser_expect(p, TOKEN_DATE);
+    if (p->has_error) {
+        return;
+    }
+    (void)parse_date(t->text);
+
+    // Parse "commodity" keyword
+    t = parser_expect(p, TOKEN_KEYWORD);
+    if (p->has_error) {
+        return;
+    }
+    StringSlice keyword = t->text;
+    if (!slice_equals_cstr(keyword, "commodity")) {
+        p->has_error = true;
+        char keyword_buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(keyword, keyword_buf, MAX_TOKEN_LENGTH);
+        (void)snprintf(p->error_message,
+                       MAX_ERROR_MESSAGE_LENGTH,
+                       "Expected keyword 'commodity' got '%s'",
+                       keyword_buf);
+        p->error_line = t->line;
+        return;
+    };
+
+    // Parse currency
+    t = parser_expect(p, TOKEN_CURRENCY);
+    if (p->has_error) {
+        return;
+    }
+    StringSlice currency = t->text;
+    Ledger *l = p->ledger;
+    bool currency_already_exists = false;
+    for (size_t i = 0; i < l->currencies->size; i++) {
+        if (slice_equals(l->currencies->data[i], currency)) {
+            currency_already_exists = true;
+            break;
+        }
+    }
+    if (currency_already_exists) {
+        p->has_error = true;
+        char currency_buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(currency, currency_buf, MAX_TOKEN_LENGTH);
+        (void)snprintf(p->error_message,
+                       MAX_ERROR_MESSAGE_LENGTH,
+                       "Commodity '%s' already declared",
+                       currency_buf);
+        p->error_line = t->line;
+        return;
+    }
+
+    t = parser_current_token(p);
+    if (t->type != TOKEN_NEWLINE && t->type != TOKEN_EOF) {
+        p->has_error = true;
+        (void)snprintf(p->error_message,
+                       MAX_ERROR_MESSAGE_LENGTH,
+                       "Expected newline or EOF after commodity directive");
+        p->error_line = t->line;
+        return;
+    }
+    if (t->type == TOKEN_NEWLINE) {
+        parser_advance(p);
+    }
+
+    string_slice_array_push(l->currencies, currency);
+}
+
 void parse_open_directive(Parser *p) {
     Token *t;
 
@@ -1354,7 +1424,10 @@ int test_parser(char *ledger_path) {
         if (t->type == TOKEN_DATE) {
             Token *next = parser_peek(&parser);
             if (next->type == TOKEN_KEYWORD) {
-                if (slice_equals_cstr(next->text, "open")) {
+                if (slice_equals_cstr(next->text, "commodity")) {
+                    parse_commodity_directive(&parser);
+                    matched = true;
+                } else if (slice_equals_cstr(next->text, "open")) {
                     parse_open_directive(&parser);
                     matched = true;
                 }
