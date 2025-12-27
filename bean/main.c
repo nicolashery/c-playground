@@ -131,6 +131,19 @@ typedef enum {
     FLAG_WARNING, // "!"
 } Flag;
 
+char *flag_to_string(Flag flag) {
+    switch (flag) {
+    case FLAG_NONE:
+        return "txn";
+    case FLAG_OKAY:
+        return "*";
+    case FLAG_WARNING:
+        return "!";
+    default:
+        return "UNKNOWN";
+    }
+}
+
 typedef struct {
     Date date;
     Flag flag;
@@ -442,6 +455,7 @@ void print_ledger(Ledger *l) {
     for (size_t i = 0; i < l->transactions->size; i++) {
         Transaction t = l->transactions->data[i];
         printf("Date: %d-%02d-%02d\n", t.date.year, t.date.month, t.date.day);
+        printf("Flag: %s\n", flag_to_string(t.flag));
         printf("Payee: ");
         if (t.payee.start == NULL) {
             printf("NULL\n");
@@ -463,6 +477,7 @@ void print_ledger(Ledger *l) {
             print_slice(l->currencies->data[p.amount.currency_index]);
             printf("\n");
         }
+        printf("\n");
     }
 }
 
@@ -1228,12 +1243,12 @@ void parse_commodity_directive(Parser *p) {
     StringSlice keyword = t->text;
     if (!slice_equals_cstr(keyword, "commodity")) {
         p->has_error = true;
-        char keyword_buf[MAX_TOKEN_LENGTH] = {0};
-        slice_to_cstr(keyword, keyword_buf, MAX_TOKEN_LENGTH);
+        char buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(keyword, buf, MAX_TOKEN_LENGTH);
         (void)snprintf(p->error_message,
                        MAX_ERROR_MESSAGE_LENGTH,
                        "Expected keyword 'commodity' got '%s'",
-                       keyword_buf);
+                       buf);
         p->error_line = t->line;
         return;
     };
@@ -1254,12 +1269,10 @@ void parse_commodity_directive(Parser *p) {
     }
     if (currency_already_exists) {
         p->has_error = true;
-        char currency_buf[MAX_TOKEN_LENGTH] = {0};
-        slice_to_cstr(currency, currency_buf, MAX_TOKEN_LENGTH);
-        (void)snprintf(p->error_message,
-                       MAX_ERROR_MESSAGE_LENGTH,
-                       "Commodity '%s' already declared",
-                       currency_buf);
+        char buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(currency, buf, MAX_TOKEN_LENGTH);
+        (void)snprintf(
+            p->error_message, MAX_ERROR_MESSAGE_LENGTH, "Commodity '%s' already declared", buf);
         p->error_line = t->line;
         return;
     }
@@ -1298,12 +1311,10 @@ void parse_open_directive(Parser *p) {
     StringSlice keyword = t->text;
     if (!slice_equals_cstr(keyword, "open")) {
         p->has_error = true;
-        char keyword_buf[MAX_TOKEN_LENGTH] = {0};
-        slice_to_cstr(keyword, keyword_buf, MAX_TOKEN_LENGTH);
-        (void)snprintf(p->error_message,
-                       MAX_ERROR_MESSAGE_LENGTH,
-                       "Expected keyword 'open' got '%s'",
-                       keyword_buf);
+        char buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(keyword, buf, MAX_TOKEN_LENGTH);
+        (void)snprintf(
+            p->error_message, MAX_ERROR_MESSAGE_LENGTH, "Expected keyword 'open' got '%s'", buf);
         p->error_line = t->line;
         return;
     };
@@ -1318,12 +1329,10 @@ void parse_open_directive(Parser *p) {
     AccountType account_type = account_extract_type(account_root);
     if (account_type == ACCOUNT_TYPE_INVALID) {
         p->has_error = true;
-        char account_root_buf[MAX_TOKEN_LENGTH] = {0};
-        slice_to_cstr(account_root, account_root_buf, MAX_TOKEN_LENGTH);
-        (void)snprintf(p->error_message,
-                       MAX_ERROR_MESSAGE_LENGTH,
-                       "Invalid account type '%s'",
-                       account_root_buf);
+        char buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(account_root, buf, MAX_TOKEN_LENGTH);
+        (void)snprintf(
+            p->error_message, MAX_ERROR_MESSAGE_LENGTH, "Invalid account type '%s'", buf);
         p->error_line = t->line;
         return;
     }
@@ -1337,12 +1346,12 @@ void parse_open_directive(Parser *p) {
     }
     if (account_already_exists) {
         p->has_error = true;
-        char account_name_buf[MAX_TOKEN_LENGTH] = {0};
-        slice_to_cstr(account_name, account_name_buf, MAX_TOKEN_LENGTH);
+        char buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(account_name, buf, MAX_TOKEN_LENGTH);
         (void)snprintf(p->error_message,
                        MAX_ERROR_MESSAGE_LENGTH,
                        "Account with name '%s' already opened",
-                       account_name_buf);
+                       buf);
         p->error_line = t->line;
         return;
     }
@@ -1365,6 +1374,83 @@ void parse_open_directive(Parser *p) {
     }
 
     account_array_push(l->accounts, account);
+}
+
+void parse_transaction(Parser *p) {
+    Token *t;
+
+    // Parse date
+    t = parser_expect(p, TOKEN_DATE);
+    if (p->has_error) {
+        return;
+    }
+    Date date = parse_date(t->text);
+
+    // Parse "txn" keyword, or a flag
+    t = parser_current_token(p);
+    Flag flag = FLAG_NONE;
+    if (t->type == TOKEN_KEYWORD) {
+        StringSlice keyword = t->text;
+        if (!slice_equals_cstr(keyword, "txn")) {
+            p->has_error = true;
+            char buf[MAX_TOKEN_LENGTH] = {0};
+            slice_to_cstr(keyword, buf, MAX_TOKEN_LENGTH);
+            (void)snprintf(
+                p->error_message, MAX_ERROR_MESSAGE_LENGTH, "Expected keyword 'txn' got '%s'", buf);
+            p->error_line = t->line;
+            return;
+        };
+
+    } else if (t->type == TOKEN_ASTERISK) {
+        flag = FLAG_OKAY;
+    } else {
+        p->has_error = true;
+        char buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(t->text, buf, MAX_TOKEN_LENGTH);
+        (void)snprintf(p->error_message,
+                       MAX_ERROR_MESSAGE_LENGTH,
+                       "Expected keyword 'txn' or flag ('*' or '!') but got %s '%s'",
+                       token_type_to_string(t->type),
+                       buf);
+        p->error_line = t->line;
+        return;
+    }
+    parser_advance(p);
+
+    // Parse optional payee and/or narration
+    t = parser_expect(p, TOKEN_STRING);
+    if (p->has_error) {
+        return;
+    }
+    StringSlice payee = {0};
+    StringSlice narration = t->text;
+    t = parser_current_token(p);
+    if (t->type == TOKEN_STRING) {
+        payee = narration;
+        narration = t->text;
+    } else if (t->type != TOKEN_NEWLINE) {
+        p->has_error = true;
+        char buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(t->text, buf, MAX_TOKEN_LENGTH);
+        (void)snprintf(p->error_message,
+                       MAX_ERROR_MESSAGE_LENGTH,
+                       "Expected narration string or new line but got %s '%s'",
+                       token_type_to_string(t->type),
+                       buf);
+        p->error_line = t->line;
+        return;
+    }
+    parser_advance(p);
+
+    Ledger *l = p->ledger;
+
+    Transaction transaction = {0};
+    transaction.date = date;
+    transaction.flag = flag;
+    transaction.payee = payee;
+    transaction.narration = narration;
+
+    transaction_array_push(l->transactions, transaction);
 }
 
 void parser_print_error(Parser *p) {
@@ -1401,7 +1487,13 @@ void parse_next(Parser *p) {
             } else if (slice_equals_cstr(next->text, "open")) {
                 parse_open_directive(p);
                 matched = true;
+            } else if (slice_equals_cstr(next->text, "txn")) {
+                parse_transaction(p);
+                matched = true;
             }
+        } else if (next->type == TOKEN_ASTERISK) {
+            parse_transaction(p);
+            matched = true;
         }
     }
 

@@ -6,7 +6,7 @@
 2014-01-01 open Expenses:Food
 
 ; Transactions
-2014-01-02 * "Deposit" ; Opening balance
+2014-01-02 txn "Deposit" ; Opening balance
   Assets:Checking          100.00 USD
   Equity:OpeningBalances  -100.00 USD
 
