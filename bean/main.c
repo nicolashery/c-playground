@@ -985,9 +985,16 @@ Token scanner_next_token(Scanner *s) {
     scanner_skip_comments(s);
     if (!s->at_line_start) {
         // If not at line start, skip inter-token whitespace
-        // (this might reveal more comments)
+        // (this might reveal end-of-line comment)
         scanner_skip_whitespace(s);
-        scanner_skip_comments(s);
+        c = *s->current;
+        if (c == ';') {
+            // Consume only end of line comment and fall through to emit new line token
+            while (c != '\n' && c != '\0') {
+                s->current++;
+                c = *s->current;
+            }
+        }
     } else {
         // If at line start, check if indented comment line
         const char *start = s->current;
