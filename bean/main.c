@@ -1168,11 +1168,11 @@ Parser parser_init(TokenArray *tokens, Ledger *ledger) {
     return parser;
 }
 
-Token *parser_current_token(Parser *p) {
+Token *parser_peek(Parser *p) {
     return &p->tokens->data[p->current];
 }
 
-Token *parser_peek(Parser *p) {
+Token *parser_lookahead(Parser *p) {
     size_t next = p->current + 1;
     if (next >= p->tokens->size) {
         return &p->tokens->data[p->current];
@@ -1190,9 +1190,19 @@ void parser_advance(Parser *p) {
     p->current = next;
 }
 
-Token *parser_expect(Parser *p, TokenType token_type) {
-    Token *t = parser_current_token(p);
+Token *parser_match(Parser *p, TokenType token_type) {
+    Token *t = parser_peek(p);
     if (t->type != token_type) {
+        return NULL;
+    }
+
+    parser_advance(p);
+    return t;
+}
+
+Token *parser_expect(Parser *p, TokenType token_type) {
+    Token *t = parser_match(p, token_type);
+    if (t == NULL) {
         p->has_error = true;
         (void)snprintf(p->error_message,
                        MAX_ERROR_MESSAGE_LENGTH,
@@ -1203,7 +1213,6 @@ Token *parser_expect(Parser *p, TokenType token_type) {
         return NULL;
     }
 
-    parser_advance(p);
     return t;
 }
 
@@ -1277,17 +1286,17 @@ void parse_commodity_directive(Parser *p) {
         return;
     }
 
-    t = parser_current_token(p);
-    if (t->type != TOKEN_NEWLINE && t->type != TOKEN_EOF) {
+    t = parser_match(p, TOKEN_NEWLINE);
+    if (t == NULL) {
+        t = parser_match(p, TOKEN_EOF);
+    }
+    if (t == NULL) {
         p->has_error = true;
         (void)snprintf(p->error_message,
                        MAX_ERROR_MESSAGE_LENGTH,
                        "Expected newline or EOF after commodity directive");
         p->error_line = t->line;
         return;
-    }
-    if (t->type == TOKEN_NEWLINE) {
-        parser_advance(p);
     }
 
     string_slice_array_push(l->currencies, currency);
@@ -1360,17 +1369,17 @@ void parse_open_directive(Parser *p) {
         .name = account_name,
     };
 
-    t = parser_current_token(p);
-    if (t->type != TOKEN_NEWLINE && t->type != TOKEN_EOF) {
+    t = parser_match(p, TOKEN_NEWLINE);
+    if (t == NULL) {
+        t = parser_match(p, TOKEN_EOF);
+    }
+    if (t == NULL) {
         p->has_error = true;
         (void)snprintf(p->error_message,
                        MAX_ERROR_MESSAGE_LENGTH,
                        "Expected newline or EOF after open directive");
         p->error_line = t->line;
         return;
-    }
-    if (t->type == TOKEN_NEWLINE) {
-        parser_advance(p);
     }
 
     account_array_push(l->accounts, account);
@@ -1387,9 +1396,9 @@ void parse_transaction(Parser *p) {
     Date date = parse_date(t->text);
 
     // Parse "txn" keyword, or a flag
-    t = parser_current_token(p);
     Flag flag = FLAG_NONE;
-    if (t->type == TOKEN_KEYWORD) {
+    t = parser_match(p, TOKEN_KEYWORD);
+    if (t != NULL) {
         StringSlice keyword = t->text;
         if (!slice_equals_cstr(keyword, "txn")) {
             p->has_error = true;
@@ -1401,26 +1410,28 @@ void parse_transaction(Parser *p) {
             return;
         };
 
-    } else if (t->type == TOKEN_FLAG) {
-        char c = t->text.start[0];
-        if (c == '*') {
-            flag = FLAG_OKAY;
-        } else if (c == '!') {
-            flag = FLAG_WARNING;
-        }
     } else {
-        p->has_error = true;
-        char buf[MAX_TOKEN_LENGTH] = {0};
-        slice_to_cstr(t->text, buf, MAX_TOKEN_LENGTH);
-        (void)snprintf(p->error_message,
-                       MAX_ERROR_MESSAGE_LENGTH,
-                       "Expected keyword 'txn' or flag ('*' or '!') but got %s '%s'",
-                       token_type_to_string(t->type),
-                       buf);
-        p->error_line = t->line;
-        return;
+        t = parser_match(p, TOKEN_FLAG);
+        if (t != NULL) {
+            char c = t->text.start[0];
+            if (c == '*') {
+                flag = FLAG_OKAY;
+            } else if (c == '!') {
+                flag = FLAG_WARNING;
+            }
+        } else {
+            p->has_error = true;
+            char buf[MAX_TOKEN_LENGTH] = {0};
+            slice_to_cstr(t->text, buf, MAX_TOKEN_LENGTH);
+            (void)snprintf(p->error_message,
+                           MAX_ERROR_MESSAGE_LENGTH,
+                           "Expected keyword 'txn' or flag ('*' or '!') but got %s '%s'",
+                           token_type_to_string(t->type),
+                           buf);
+            p->error_line = t->line;
+            return;
+        }
     }
-    parser_advance(p);
 
     // Parse optional payee and/or narration
     t = parser_expect(p, TOKEN_STRING);
@@ -1429,23 +1440,24 @@ void parse_transaction(Parser *p) {
     }
     StringSlice payee = {0};
     StringSlice narration = t->text;
-    t = parser_current_token(p);
-    if (t->type == TOKEN_STRING) {
+    t = parser_match(p, TOKEN_STRING);
+    if (t != NULL) {
         payee = narration;
         narration = t->text;
-    } else if (t->type != TOKEN_NEWLINE) {
+    }
+
+    t = parser_match(p, TOKEN_NEWLINE);
+    if (t == NULL) {
+        t = parser_match(p, TOKEN_EOF);
+    }
+    if (t == NULL) {
         p->has_error = true;
-        char buf[MAX_TOKEN_LENGTH] = {0};
-        slice_to_cstr(t->text, buf, MAX_TOKEN_LENGTH);
         (void)snprintf(p->error_message,
                        MAX_ERROR_MESSAGE_LENGTH,
-                       "Expected narration string or new line but got %s '%s'",
-                       token_type_to_string(t->type),
-                       buf);
+                       "Expected newline or EOF after transaction directive");
         p->error_line = t->line;
         return;
     }
-    parser_advance(p);
 
     Ledger *l = p->ledger;
 
@@ -1467,7 +1479,7 @@ void parser_print_error(Parser *p) {
 }
 
 void parse_next(Parser *p) {
-    Token *t = parser_current_token(p);
+    Token *t = parser_peek(p);
     if (t->type == TOKEN_EOF) {
         p->is_eof = true;
         return;
@@ -1484,7 +1496,7 @@ void parse_next(Parser *p) {
 
     bool matched = false;
     if (t->type == TOKEN_DATE) {
-        Token *next = parser_peek(p);
+        Token *next = parser_lookahead(p);
         if (next->type == TOKEN_KEYWORD) {
             if (slice_equals_cstr(next->text, "commodity")) {
                 parse_commodity_directive(p);
