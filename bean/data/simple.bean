@@ -8,14 +8,14 @@
 ; Transactions
 ; Checking
 2014-01-02 txn "Deposit" ; Opening balance
-  Assets:Checking           100.00 USD
-  Equity:OpeningBalances   -100.00 USD
+  Assets:Checking          100.00 USD
+  Equity:OpeningBalances  -100.00 USD
 
 2014-01-05 * "Whole Foods" "Groceries"
-  Expenses:Food             -45.12 USD
-  Assets:Checking            45.12 USD
+  Expenses:Food            -45.12 USD
+  Assets:Checking           45.12 USD
 
 2024-01-07 ! "Costco" "Party supplies" ; Need better description
   ; Need to check this
-  Expenses:Food:Groceries    95.47 USD
-  Assets:Checking           -95.47 USD
+  Expenses:Food             95.47 USD
+  Assets:Checking          -95.47 USD

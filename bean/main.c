@@ -13,6 +13,7 @@
 #define MAX_TOKEN_TYPE_LENGTH 16
 #define MAX_TOKEN_LENGTH 256
 #define MAX_ERROR_MESSAGE_LENGTH 256
+#define MAX_NUMBER_LENGTH 16
 
 typedef struct {
     // Pointer into file buffer
@@ -974,12 +975,8 @@ bool try_scan_number(Scanner *s, Token *t) {
 }
 
 Token scanner_next_token(Scanner *s) {
-    char c = *s->current;
+    char c;
     Token t = {0};
-
-    if (s->line == 10) {
-        (void)1;
-    }
 
     // Always skip comments first
     scanner_skip_comments(s);
@@ -1040,6 +1037,7 @@ Token scanner_next_token(Scanner *s) {
     // EOF
     if (c == '\0') {
         t.type = TOKEN_EOF;
+        t.line = s->line;
         return t;
     }
 
@@ -1264,13 +1262,14 @@ Token *parser_match(Parser *p, TokenType token_type) {
 Token *parser_expect(Parser *p, TokenType token_type) {
     Token *t = parser_match(p, token_type);
     if (t == NULL) {
+        Token *current = parser_peek(p);
         p->has_error = true;
         (void)snprintf(p->error_message,
                        MAX_ERROR_MESSAGE_LENGTH,
                        "Expected token %s got %s",
                        token_type_to_string(token_type),
-                       token_type_to_string(t->type));
-        p->error_line = t->line;
+                       token_type_to_string(current->type));
+        p->error_line = current->line;
         return NULL;
     }
 
@@ -1446,6 +1445,139 @@ void parse_open_directive(Parser *p) {
     account_array_push(l->accounts, account);
 }
 
+int find_account(AccountArray *accounts, StringSlice account_name) {
+    int result = -1;
+    for (size_t i = 0; i < accounts->size; i++) {
+        if (slice_equals(accounts->data[i].name, account_name)) {
+            result = (int)i;
+            break;
+        }
+    }
+    return result;
+}
+
+int find_currency(StringSliceArray *currencies, StringSlice currency) {
+    int result = -1;
+    for (size_t i = 0; i < currencies->size; i++) {
+        if (slice_equals(currencies->data[i], currency)) {
+            result = (int)i;
+            break;
+        }
+    }
+    return result;
+}
+
+long parse_amount_number(Parser *p, Token *t) {
+    StringSlice text = t->text;
+    assert(text.len < MAX_NUMBER_LENGTH && "Number string too long");
+
+    // Copy over text omitting '.' to convert to cents
+    char buf[MAX_NUMBER_LENGTH];
+    size_t j = 0;
+    size_t decimal_index = 0;
+    size_t decimal_count = 0;
+    for (size_t i = 0; i < text.len; i++) {
+        if (text.start[i] == '.') {
+            decimal_index = i;
+            break;
+        }
+
+        buf[j] = text.start[i];
+        j++;
+    }
+    for (size_t i = decimal_index; i < text.len; i++) {
+        if (text.start[i] == '.') {
+            continue;
+        }
+
+        decimal_count++;
+        buf[j] = text.start[i];
+        j++;
+    }
+    buf[j] = '\0';
+
+    if (decimal_count != 2) {
+        p->has_error = true;
+        (void)snprintf(
+            p->error_message, MAX_ERROR_MESSAGE_LENGTH, "Expected exacly 2 decimal places");
+        p->error_line = t->line;
+        return 0;
+    }
+
+    return strtol(buf, NULL, 10);
+}
+
+bool parse_posting(Parser *p, Posting *posting) {
+    Token *t;
+
+    t = parser_match(p, TOKEN_NEWLINE);
+    if (t != NULL) {
+        return false;
+    }
+
+    t = parser_match(p, TOKEN_EOF);
+    if (t != NULL) {
+        return false;
+    }
+
+    (void)parser_expect(p, TOKEN_INDENT);
+    if (p->has_error) {
+        return false;
+    }
+
+    t = parser_expect(p, TOKEN_ACCOUNT);
+    if (p->has_error) {
+        return false;
+    }
+    StringSlice account_name = t->text;
+    int account_index = find_account(p->ledger->accounts, account_name);
+    if (account_index < 0) {
+        p->has_error = true;
+        char buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(account_name, buf, MAX_TOKEN_LENGTH);
+        (void)snprintf(
+            p->error_message, MAX_ERROR_MESSAGE_LENGTH, "Account with name '%s' never opened", buf);
+        p->error_line = t->line;
+        return false;
+    }
+    posting->account_index = (size_t)account_index;
+
+    t = parser_expect(p, TOKEN_NUMBER);
+    if (p->has_error) {
+        return false;
+    }
+    Amount amount = {0};
+    long number = parse_amount_number(p, t);
+    if (p->has_error) {
+        return false;
+    }
+    amount.number = number;
+
+    t = parser_expect(p, TOKEN_CURRENCY);
+    if (p->has_error) {
+        return false;
+    }
+    StringSlice currency = t->text;
+    int currency_index = find_currency(p->ledger->currencies, currency);
+    if (currency_index < 0) {
+        p->has_error = true;
+        char buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(currency, buf, MAX_TOKEN_LENGTH);
+        (void)snprintf(p->error_message,
+                       MAX_ERROR_MESSAGE_LENGTH,
+                       "Commodity with name '%s' never declared",
+                       buf);
+        p->error_line = t->line;
+        return false;
+    }
+    amount.currency_index = (size_t)currency_index;
+
+    posting->amount = amount;
+
+    (void)parser_expect(p, TOKEN_NEWLINE);
+    return !p->has_error;
+}
+
 void parse_transaction(Parser *p) {
     Token *t;
 
@@ -1527,6 +1659,18 @@ void parse_transaction(Parser *p) {
     transaction.flag = flag;
     transaction.payee = payee;
     transaction.narration = narration;
+
+    transaction.postings_start_index = l->postings->size;
+    transaction.postings_count = 0;
+    Posting posting = {0};
+    while (parse_posting(p, &posting)) {
+        posting_array_push(l->postings, posting);
+        transaction.postings_count++;
+    }
+
+    if (p->has_error) {
+        return;
+    }
 
     transaction_array_push(l->transactions, transaction);
 }
@@ -1706,8 +1850,8 @@ int main(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
         // return test_file(ledger_path);
-        return test_scanner(ledger_path);
-        // return test_parser(ledger_path);
+        // return test_scanner(ledger_path);
+        return test_parser(ledger_path);
     }
 
     printf("Unknown command: %s\n", command);
