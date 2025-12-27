@@ -697,7 +697,7 @@ typedef enum {
     TOKEN_NUMBER,   // -45.12
     TOKEN_CURRENCY, // USD
     TOKEN_STRING,   // "Groceries"
-    TOKEN_ASTERISK, // *
+    TOKEN_FLAG,     // * or !
     TOKEN_NEWLINE,  // \n
     TOKEN_INDENT,   // leading whitespace
     TOKEN_EOF,      // end of file
@@ -719,8 +719,8 @@ char *token_type_to_string(TokenType type) {
         return "CURRENCY";
     case TOKEN_STRING:
         return "STRING";
-    case TOKEN_ASTERISK:
-        return "ASTERISK";
+    case TOKEN_FLAG:
+        return "FLAG";
     case TOKEN_NEWLINE:
         return "NEWLINE";
     case TOKEN_INDENT:
@@ -996,9 +996,9 @@ Token scanner_next_token(Scanner *s) {
         return t;
     }
 
-    // Asterisk
-    if (c == '*') {
-        t.type = TOKEN_ASTERISK;
+    // Flag
+    if (c == '*' || c == '!') {
+        t.type = TOKEN_FLAG;
         t.text = (StringSlice){
             .start = s->current,
             .len = 1,
@@ -1401,8 +1401,13 @@ void parse_transaction(Parser *p) {
             return;
         };
 
-    } else if (t->type == TOKEN_ASTERISK) {
-        flag = FLAG_OKAY;
+    } else if (t->type == TOKEN_FLAG) {
+        char c = t->text.start[0];
+        if (c == '*') {
+            flag = FLAG_OKAY;
+        } else if (c == '!') {
+            flag = FLAG_WARNING;
+        }
     } else {
         p->has_error = true;
         char buf[MAX_TOKEN_LENGTH] = {0};
@@ -1491,7 +1496,7 @@ void parse_next(Parser *p) {
                 parse_transaction(p);
                 matched = true;
             }
-        } else if (next->type == TOKEN_ASTERISK) {
+        } else if (next->type == TOKEN_FLAG) {
             parse_transaction(p);
             matched = true;
         }
