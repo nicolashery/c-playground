@@ -819,6 +819,7 @@ typedef struct {
     const char *buffer;
     const char *current;
     size_t line;
+    bool at_line_start;
 } Scanner;
 
 Scanner scanner_init(char *buffer) {
@@ -826,6 +827,7 @@ Scanner scanner_init(char *buffer) {
         .buffer = buffer,
         .current = buffer,
         .line = 1,
+        .at_line_start = true,
     };
 }
 
@@ -852,15 +854,17 @@ void scanner_skip_comments(Scanner *s) {
             c = *s->current;
         }
 
-        // Check if next line is also a comment
         if (c == '\n') {
-            const char *start = s->current;
+            // Consume newline
             s->current++;
+            s->line++;
+            s->at_line_start = true;
+
+            // Check if next line is also a comment
+            const char *start = s->current;
             scanner_skip_whitespace(s);
             c = *s->current;
-            if (c == ';') {
-                s->line++;
-            } else {
+            if (c != ';') {
                 // Backtrack if not
                 s->current = start;
                 c = *s->current;
@@ -970,12 +974,61 @@ bool try_scan_number(Scanner *s, Token *t) {
 }
 
 Token scanner_next_token(Scanner *s) {
-
-    scanner_skip_whitespace(s);
-    scanner_skip_comments(s);
-
     char c = *s->current;
     Token t = {0};
+
+    if (s->line == 10) {
+        (void)1;
+    }
+
+    // Always skip comments first
+    scanner_skip_comments(s);
+    if (!s->at_line_start) {
+        // If not at line start, skip inter-token whitespace
+        // (this might reveal more comments)
+        scanner_skip_whitespace(s);
+        scanner_skip_comments(s);
+    } else {
+        // If at line start, check if indented comment line
+        const char *start = s->current;
+        scanner_skip_whitespace(s);
+        c = *s->current;
+        if (c == ';') {
+            // If yes, skip comments
+            scanner_skip_comments(s);
+        } else {
+            // If not, backtrack
+            s->current = start;
+        }
+    }
+
+    // Check line start for indent after skipping all comments as
+    // skipping comments might place us on a new line start
+    if (s->at_line_start) {
+        // Check if any leading whitespace followed by regular character,
+        // and if yes emit indent token
+        const char *start = s->current;
+        scanner_skip_whitespace(s);
+        c = *s->current;
+        if (s->current != start && c != '\0' && c != '\n') {
+            t.type = TOKEN_INDENT;
+            t.text = (StringSlice){
+                .start = start,
+                .len = (size_t)(s->current - start),
+            };
+            t.line = s->line;
+
+            s->at_line_start = false;
+
+            return t;
+        }
+
+        // If not fall through to rest of scanner
+        // and make sure to flag line start as already checked
+        s->at_line_start = false;
+    }
+
+    c = *s->current;
 
     // EOF
     if (c == '\0') {
@@ -993,6 +1046,7 @@ Token scanner_next_token(Scanner *s) {
         t.line = s->line;
         s->current++;
         s->line++;
+        s->at_line_start = true;
         return t;
     }
 
@@ -1645,8 +1699,8 @@ int main(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
         // return test_file(ledger_path);
-        // return test_scanner(ledger_path);
-        return test_parser(ledger_path);
+        return test_scanner(ledger_path);
+        // return test_parser(ledger_path);
     }
 
     printf("Unknown command: %s\n", command);
