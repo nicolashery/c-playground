@@ -431,6 +431,32 @@ void ledger_free(Ledger *ledger) {
     free(ledger);
 }
 
+void print_transaction(Ledger *l, Transaction *t) {
+    printf("Date: %d-%02d-%02d\n", t->date.year, t->date.month, t->date.day);
+    printf("Flag: %s\n", flag_to_string(t->flag));
+    printf("Payee: ");
+    if (t->payee.start == NULL) {
+        printf("NULL\n");
+    } else {
+        print_slice(t->payee);
+        printf("\n");
+    }
+    printf("Narration: ");
+    print_slice(t->narration);
+    printf("\n");
+    printf("Postings:\n");
+    for (size_t j = 0; j < t->postings_count; j++) {
+        Posting *p = &l->postings->data[t->postings_start_index + j];
+        printf(" ");
+        print_slice(l->accounts->data[p->account_index].name);
+        printf(" ");
+        printf("%ld", p->amount.number);
+        printf(" cents ");
+        print_slice(l->currencies->data[p->amount.currency_index]);
+        printf("\n");
+    }
+}
+
 void print_ledger(Ledger *l) {
     printf("=================================\n");
     printf("Currencies\n");
@@ -454,30 +480,8 @@ void print_ledger(Ledger *l) {
     printf("Transactions\n");
     printf("=================================\n");
     for (size_t i = 0; i < l->transactions->size; i++) {
-        Transaction t = l->transactions->data[i];
-        printf("Date: %d-%02d-%02d\n", t.date.year, t.date.month, t.date.day);
-        printf("Flag: %s\n", flag_to_string(t.flag));
-        printf("Payee: ");
-        if (t.payee.start == NULL) {
-            printf("NULL\n");
-        } else {
-            print_slice(t.payee);
-            printf("\n");
-        }
-        printf("Narration: ");
-        print_slice(t.narration);
-        printf("\n");
-        printf("Postings:\n");
-        for (size_t j = 0; j < t.postings_count; j++) {
-            Posting p = l->postings->data[t.postings_start_index + j];
-            printf(" ");
-            print_slice(l->accounts->data[p.account_index].name);
-            printf(" ");
-            printf("%ld", p.amount.number);
-            printf(" cents ");
-            print_slice(l->currencies->data[p.amount.currency_index]);
-            printf("\n");
-        }
+        Transaction *t = &l->transactions->data[i];
+        print_transaction(l, t);
         printf("\n");
     }
 }
@@ -1815,10 +1819,95 @@ int test_parser(char *ledger_path) {
     return EXIT_SUCCESS;
 }
 
+bool check_transactions_balanced(Ledger *l) {
+    bool pass = true;
+    for (size_t i = 0; i < l->transactions->size; i++) {
+        Transaction *t = &l->transactions->data[i];
+        long sum = 0;
+        for (size_t j = 0; j < t->postings_count; j++) {
+            Posting *p = &l->postings->data[t->postings_start_index + j];
+            sum += p->amount.number;
+        }
+        if (sum != 0) {
+            printf("Transaction does not balance (%ld cents):\n\n", sum);
+            print_transaction(l, t);
+            printf("\n");
+
+            pass = false;
+        }
+    }
+    return pass;
+}
+
+bool check_single_currency(Ledger *l) {
+    size_t currency_count = l->currencies->size;
+    if (currency_count > 1) {
+        printf("Only a single currency per ledger is supported, got %zu\n\n", currency_count);
+        return false;
+    }
+    return true;
+}
+
 int run_check(char *ledger_path) {
-    (void)ledger_path;
-    printf("Not implemented\n");
-    return EXIT_FAILURE;
+    char *file_buffer = read_file(ledger_path);
+    if (file_buffer == NULL) {
+        printf("Error reading file\n");
+        return EXIT_FAILURE;
+    }
+
+    Ledger *ledger = ledger_create(file_buffer);
+    if (ledger == NULL) {
+        printf("Error allocating ledger\n");
+        free(file_buffer);
+        return EXIT_FAILURE;
+    }
+
+    TokenArray *tokens = token_array_create(TOKEN_ARRAY_INITIAL_CAPACITY);
+    if (tokens == NULL) {
+        printf("Error allocating token array\n");
+        free(file_buffer);
+        ledger_free(ledger);
+        return EXIT_FAILURE;
+    }
+
+    Scanner scanner = scanner_init(file_buffer);
+    Token token = {0};
+    for (;;) {
+        token = scanner_next_token(&scanner);
+        token_array_push(tokens, token);
+
+        if (token.type == TOKEN_EOF) {
+            break;
+        }
+    }
+
+    Parser parser = parser_init(tokens, ledger);
+    for (;;) {
+        parse_next(&parser);
+
+        if (parser.is_eof) {
+            break;
+        }
+
+        if (parser.has_error) {
+            parser_print_error(&parser);
+            break;
+        }
+    }
+
+    bool pass = true;
+    if (!check_single_currency(ledger)) {
+        pass = false;
+    }
+    if (!check_transactions_balanced(ledger)) {
+        pass = false;
+    }
+
+    free(file_buffer);
+    ledger_free(ledger);
+    token_array_free(tokens);
+
+    return pass ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 int run_balance(char *ledger_path) {

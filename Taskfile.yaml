@@ -57,10 +57,10 @@ tasks:
     desc: Run Bean
     deps: [build:bean]
     vars:
-      LEDGER_PATH: data/simple.bean
+      LEDGER_PATH: bean/data/simple.bean
     cmds:
-      # - cd {{.BUILD_DIR}}/bean && ./bean check {{.LEDGER_PATH}}
-      - ./{{.BUILD_DIR}}/bean/bean test bean/data/simple.bean
+      - ./{{.BUILD_DIR}}/bean/bean check {{.LEDGER_PATH}}
+      # - ./{{.BUILD_DIR}}/bean/bean test {{.LEDGER_PATH}}
 
   run:scratch:
     desc: Run Scratch
