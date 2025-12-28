@@ -1692,38 +1692,71 @@ void parse_next(Parser *p) {
 
     if (t->type == TOKEN_INVALID) {
         p->has_error = true;
-        char token_buf[MAX_TOKEN_LENGTH] = {0};
-        slice_to_cstr(t->text, token_buf, MAX_TOKEN_LENGTH);
-        (void)snprintf(p->error_message, MAX_ERROR_MESSAGE_LENGTH, "Invalid token '%s'", token_buf);
+        char buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(t->text, buf, MAX_TOKEN_LENGTH);
+        (void)snprintf(p->error_message, MAX_ERROR_MESSAGE_LENGTH, "Invalid token '%s'", buf);
         p->error_line = t->line;
         return;
     }
 
-    bool matched = false;
     if (t->type == TOKEN_DATE) {
         Token *next = parser_lookahead(p);
         if (next->type == TOKEN_KEYWORD) {
             if (slice_equals_cstr(next->text, "commodity")) {
                 parse_commodity_directive(p);
-                matched = true;
-            } else if (slice_equals_cstr(next->text, "open")) {
-                parse_open_directive(p);
-                matched = true;
-            } else if (slice_equals_cstr(next->text, "txn")) {
-                parse_transaction(p);
-                matched = true;
+                return;
             }
-        } else if (next->type == TOKEN_FLAG) {
-            parse_transaction(p);
-            matched = true;
+
+            if (slice_equals_cstr(next->text, "open")) {
+                parse_open_directive(p);
+                return;
+            }
+
+            if (slice_equals_cstr(next->text, "txn")) {
+                parse_transaction(p);
+                return;
+            }
+
+            p->has_error = true;
+            char buf[MAX_TOKEN_LENGTH] = {0};
+            slice_to_cstr(t->text, buf, MAX_TOKEN_LENGTH);
+            (void)snprintf(
+                p->error_message, MAX_ERROR_MESSAGE_LENGTH, "Unrecognized keyword '%s'", buf);
+            p->error_line = t->line;
+            return;
         }
+
+        if (next->type == TOKEN_FLAG) {
+            parse_transaction(p);
+            return;
+        }
+
+        p->has_error = true;
+        (void)snprintf(p->error_message,
+                       MAX_ERROR_MESSAGE_LENGTH,
+                       "Expected %s or %s after %s, got %s",
+                       token_type_to_string(TOKEN_KEYWORD),
+                       token_type_to_string(TOKEN_FLAG),
+                       token_type_to_string(TOKEN_DATE),
+                       token_type_to_string(next->type));
+        p->error_line = t->line;
+        return;
     }
 
-    if (!matched) {
-        // TODO: this is probably not needed after all parse functions implemented
-        // for now and testing, drop tokens
+    if (t->type == TOKEN_NEWLINE) {
         parser_advance(p);
+        return;
     }
+
+    p->has_error = true;
+    char buf[MAX_TOKEN_LENGTH] = {0};
+    slice_to_cstr(t->text, buf, MAX_TOKEN_LENGTH);
+    (void)snprintf(p->error_message,
+                   MAX_ERROR_MESSAGE_LENGTH,
+                   "Unexpected token %s '%s'",
+                   token_type_to_string(t->type),
+                   buf);
+    p->error_line = t->line;
 }
 
 int test_parser(char *ledger_path) {

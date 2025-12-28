@@ -15,6 +15,9 @@
   Expenses:Food            -45.12 USD
   Assets:Checking           45.12 USD
 
+; Multiple newlines
+
+
 2024-01-07 ! "Costco" "Party supplies" ; Need better description
   ; Need to check this
   Expenses:Food             95.47 USD
