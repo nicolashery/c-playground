@@ -79,7 +79,25 @@ typedef enum {
     EQUITY,
     INCOME,
     EXPENSES,
+    ACCOUNT_TYPE_COUNT,
 } AccountType;
+
+char *account_type_to_string(AccountType type) {
+    switch (type) {
+    case ASSETS:
+        return "Assets";
+    case LIABILITIES:
+        return "Liabilities";
+    case EQUITY:
+        return "Equity";
+    case INCOME:
+        return "Income";
+    case EXPENSES:
+        return "Expenses";
+    default:
+        return "UNKNOWN";
+    }
+}
 
 typedef struct {
     AccountType type;
@@ -1918,9 +1936,11 @@ int run_balance(char *ledger_path) {
         balances[posting->account_index] += posting->amount.number;
     }
 
-    assert(ledger->currencies->size == 1 && "Expected single currency");
-    char currency[MAX_TOKEN_LENGTH] = {0};
-    slice_to_cstr(ledger->currencies->data[0], currency, MAX_TOKEN_LENGTH);
+    long category_totals[ACCOUNT_TYPE_COUNT] = {0};
+    for (size_t i = 0; i < ledger->accounts->size; i++) {
+        AccountType type = ledger->accounts->data[i].type;
+        category_totals[type] += balances[i];
+    }
 
     size_t max_account_length = 0;
     for (size_t i = 0; i < ledger->accounts->size; i++) {
@@ -1929,8 +1949,17 @@ int run_balance(char *ledger_path) {
             max_account_length = name.len;
         }
     }
+    // Unlikely root account name longer than all leaf accounts
+    // but for good measure checking anyways
+    for (AccountType type = ASSETS; type < ACCOUNT_TYPE_COUNT; type++) {
+        size_t len = strlen(account_type_to_string(type));
+        if (len > max_account_length) {
+            max_account_length = len;
+        }
+    }
 
     typedef char BalanceString[MAX_NUMBER_LENGTH];
+
     BalanceString *balance_strs = calloc(ledger->accounts->size, sizeof(BalanceString));
     if (balance_strs == NULL) {
         ledger_free(ledger);
@@ -1947,6 +1976,19 @@ int run_balance(char *ledger_path) {
         }
     }
 
+    BalanceString category_total_strs[ACCOUNT_TYPE_COUNT] = {0};
+    for (AccountType type = ASSETS; type < ACCOUNT_TYPE_COUNT; type++) {
+        cents_to_cstr(category_totals[type], category_total_strs[type], MAX_NUMBER_LENGTH);
+        size_t len = strlen(category_total_strs[type]);
+        if (len > max_balance_length) {
+            max_balance_length = len;
+        }
+    }
+
+    assert(ledger->currencies->size == 1 && "Expected single currency");
+    char currency[MAX_TOKEN_LENGTH] = {0};
+    slice_to_cstr(ledger->currencies->data[0], currency, MAX_TOKEN_LENGTH);
+
     for (size_t i = 0; i < ledger->accounts->size; i++) {
         char buf[MAX_TOKEN_LENGTH] = {0};
         slice_to_cstr(ledger->accounts->data[i].name, buf, MAX_TOKEN_LENGTH);
@@ -1954,10 +1996,16 @@ int run_balance(char *ledger_path) {
         printf("%*s", (int)max_balance_length, balance_strs[i]);
         printf(" %s\n", currency);
     }
+    printf("\n");
+    for (AccountType type = ASSETS; type < ACCOUNT_TYPE_COUNT; type++) {
+        printf("%-*s   ", (int)max_account_length, account_type_to_string(type));
+        printf("%*s", (int)max_balance_length, category_total_strs[type]);
+        printf(" %s\n", currency);
+    }
 
-    ledger_free(ledger);
     free(balances);
     free(balance_strs);
+    ledger_free(ledger);
 
     return EXIT_SUCCESS;
 }
