@@ -1723,10 +1723,10 @@ void parse_next(Parser *p) {
 
             p->has_error = true;
             char buf[MAX_TOKEN_LENGTH] = {0};
-            slice_to_cstr(t->text, buf, MAX_TOKEN_LENGTH);
+            slice_to_cstr(next->text, buf, MAX_TOKEN_LENGTH);
             (void)snprintf(
                 p->error_message, MAX_ERROR_MESSAGE_LENGTH, "Unrecognized keyword '%s'", buf);
-            p->error_line = t->line;
+            p->error_line = next->line;
             return;
         }
 
@@ -1743,7 +1743,7 @@ void parse_next(Parser *p) {
                        token_type_to_string(TOKEN_FLAG),
                        token_type_to_string(TOKEN_DATE),
                        token_type_to_string(next->type));
-        p->error_line = t->line;
+        p->error_line = next->line;
         return;
     }
 
@@ -1763,26 +1763,11 @@ void parse_next(Parser *p) {
     p->error_line = t->line;
 }
 
-int test_parser(char *ledger_path) {
-    char *file_buffer = read_file(ledger_path);
-    if (file_buffer == NULL) {
-        printf("Error reading file\n");
-        return EXIT_FAILURE;
-    }
-
-    Ledger *ledger = ledger_create(file_buffer);
-    if (ledger == NULL) {
-        printf("Error allocating ledger\n");
-        free(file_buffer);
-        return EXIT_FAILURE;
-    }
-
+bool parse_ledger(char *file_buffer, Ledger *ledger) {
     TokenArray *tokens = token_array_create(TOKEN_ARRAY_INITIAL_CAPACITY);
     if (tokens == NULL) {
         printf("Error allocating token array\n");
-        free(file_buffer);
-        ledger_free(ledger);
-        return EXIT_FAILURE;
+        return false;
     }
 
     Scanner scanner = scanner_init(file_buffer);
@@ -1805,16 +1790,47 @@ int test_parser(char *ledger_path) {
         }
 
         if (parser.has_error) {
-            parser_print_error(&parser);
             break;
         }
     }
 
-    print_ledger(parser.ledger);
+    if (parser.has_error) {
+        parser_print_error(&parser);
+
+        token_array_free(tokens);
+        return false;
+    }
+
+    return true;
+}
+
+int test_parser(char *ledger_path) {
+    char *file_buffer = read_file(ledger_path);
+    if (file_buffer == NULL) {
+        printf("Error reading file\n");
+        return EXIT_FAILURE;
+    }
+
+    Ledger *ledger = ledger_create(file_buffer);
+    if (ledger == NULL) {
+        printf("Error allocating ledger\n");
+        free(file_buffer);
+        return EXIT_FAILURE;
+    }
+
+    bool success = parse_ledger(file_buffer, ledger);
+
+    if (!success) {
+        free(file_buffer);
+        ledger_free(ledger);
+
+        return EXIT_FAILURE;
+    }
+
+    print_ledger(ledger);
 
     free(file_buffer);
     ledger_free(ledger);
-    token_array_free(tokens);
 
     return EXIT_SUCCESS;
 }
@@ -1862,52 +1878,27 @@ int run_check(char *ledger_path) {
         return EXIT_FAILURE;
     }
 
-    TokenArray *tokens = token_array_create(TOKEN_ARRAY_INITIAL_CAPACITY);
-    if (tokens == NULL) {
-        printf("Error allocating token array\n");
+    bool parse_success = parse_ledger(file_buffer, ledger);
+
+    if (!parse_success) {
         free(file_buffer);
         ledger_free(ledger);
+
         return EXIT_FAILURE;
     }
 
-    Scanner scanner = scanner_init(file_buffer);
-    Token token = {0};
-    for (;;) {
-        token = scanner_next_token(&scanner);
-        token_array_push(tokens, token);
-
-        if (token.type == TOKEN_EOF) {
-            break;
-        }
-    }
-
-    Parser parser = parser_init(tokens, ledger);
-    for (;;) {
-        parse_next(&parser);
-
-        if (parser.is_eof) {
-            break;
-        }
-
-        if (parser.has_error) {
-            parser_print_error(&parser);
-            break;
-        }
-    }
-
-    bool pass = true;
+    bool check_success = true;
     if (!check_single_currency(ledger)) {
-        pass = false;
+        check_success = false;
     }
     if (!check_transactions_balanced(ledger)) {
-        pass = false;
+        check_success = false;
     }
 
     free(file_buffer);
     ledger_free(ledger);
-    token_array_free(tokens);
 
-    return pass ? EXIT_SUCCESS : EXIT_FAILURE;
+    return check_success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 int run_balance(char *ledger_path) {
