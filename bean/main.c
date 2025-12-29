@@ -441,8 +441,14 @@ void ledger_free(Ledger *ledger) {
 
 void print_cents(long cents) {
     long dollars = cents / AMOUNT_DOLLAR_CENTS_RATIO;
-    long remainder = abs((int)cents % AMOUNT_DOLLAR_CENTS_RATIO);
+    long remainder = llabs(cents % AMOUNT_DOLLAR_CENTS_RATIO);
     printf("%ld.%02ld", dollars, remainder);
+}
+
+void cents_to_cstr(long cents, char *buffer, size_t buffer_size) {
+    long dollars = cents / AMOUNT_DOLLAR_CENTS_RATIO;
+    long remainder = llabs(cents % AMOUNT_DOLLAR_CENTS_RATIO);
+    (void)snprintf(buffer, buffer_size, "%ld.%02ld", dollars, remainder);
 }
 
 void print_amount(Amount amount, StringSliceArray *currencies) {
@@ -1916,14 +1922,42 @@ int run_balance(char *ledger_path) {
     char currency[MAX_TOKEN_LENGTH] = {0};
     slice_to_cstr(ledger->currencies->data[0], currency, MAX_TOKEN_LENGTH);
 
+    size_t max_account_length = 0;
     for (size_t i = 0; i < ledger->accounts->size; i++) {
-        print_slice(ledger->accounts->data[i].name);
-        printf(" ");
-        print_cents(balances[i]);
+        StringSlice name = ledger->accounts->data[i].name;
+        if (name.len > max_account_length) {
+            max_account_length = name.len;
+        }
+    }
+
+    typedef char BalanceString[MAX_NUMBER_LENGTH];
+    BalanceString *balance_strs = calloc(ledger->accounts->size, sizeof(BalanceString));
+    if (balance_strs == NULL) {
+        ledger_free(ledger);
+        free(balances);
+        printf("Error allocating balance strings array\n");
+        return EXIT_FAILURE;
+    }
+    size_t max_balance_length = 0;
+    for (size_t i = 0; i < ledger->accounts->size; i++) {
+        cents_to_cstr(balances[i], balance_strs[i], MAX_NUMBER_LENGTH);
+        size_t len = strlen(balance_strs[i]);
+        if (len > max_balance_length) {
+            max_balance_length = len;
+        }
+    }
+
+    for (size_t i = 0; i < ledger->accounts->size; i++) {
+        char buf[MAX_TOKEN_LENGTH] = {0};
+        slice_to_cstr(ledger->accounts->data[i].name, buf, MAX_TOKEN_LENGTH);
+        printf("%-*s   ", (int)max_account_length, buf);
+        printf("%*s", (int)max_balance_length, balance_strs[i]);
         printf(" %s\n", currency);
     }
 
+    ledger_free(ledger);
     free(balances);
+    free(balance_strs);
 
     return EXIT_SUCCESS;
 }
