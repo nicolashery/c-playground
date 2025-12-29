@@ -15,6 +15,9 @@
 #define MAX_ERROR_MESSAGE_LENGTH 256
 #define MAX_NUMBER_LENGTH 16
 
+#define AMOUNT_DECIMAL_PLACES 2
+#define AMOUNT_DOLLAR_CENTS_RATIO 100
+
 typedef struct {
     // Pointer into file buffer
     const char *start;
@@ -436,6 +439,18 @@ void ledger_free(Ledger *ledger) {
     free(ledger);
 }
 
+void print_cents(long cents) {
+    long dollars = cents / AMOUNT_DOLLAR_CENTS_RATIO;
+    long remainder = abs((int)cents % AMOUNT_DOLLAR_CENTS_RATIO);
+    printf("%ld.%02ld", dollars, remainder);
+}
+
+void print_amount(Amount amount, StringSliceArray *currencies) {
+    print_cents(amount.number);
+    printf(" ");
+    print_slice(currencies->data[amount.currency_index]);
+}
+
 void print_transaction(Ledger *l, Transaction *t) {
     printf("Date: %d-%02d-%02d\n", t->date.year, t->date.month, t->date.day);
     printf("Flag: %s\n", flag_to_string(t->flag));
@@ -455,9 +470,7 @@ void print_transaction(Ledger *l, Transaction *t) {
         printf(" ");
         print_slice(l->accounts->data[p->account_index].name);
         printf(" ");
-        printf("%ld", p->amount.number);
-        printf(" cents ");
-        print_slice(l->currencies->data[p->amount.currency_index]);
+        print_amount(p->amount, l->currencies);
         printf("\n");
     }
 }
@@ -1474,10 +1487,12 @@ long parse_amount_number(Parser *p, Token *t) {
     }
     buf[j] = '\0';
 
-    if (decimal_count != 2) {
+    if (decimal_count != AMOUNT_DECIMAL_PLACES) {
         p->has_error = true;
-        (void)snprintf(
-            p->error_message, MAX_ERROR_MESSAGE_LENGTH, "Expected exacly 2 decimal places");
+        (void)snprintf(p->error_message,
+                       MAX_ERROR_MESSAGE_LENGTH,
+                       "Expected exacly %d decimal places",
+                       AMOUNT_DECIMAL_PLACES);
         p->error_line = t->line;
         return 0;
     }
@@ -1903,7 +1918,9 @@ int run_balance(char *ledger_path) {
 
     for (size_t i = 0; i < ledger->accounts->size; i++) {
         print_slice(ledger->accounts->data[i].name);
-        printf(" %ld cents %s\n", balances[i], currency);
+        printf(" ");
+        print_cents(balances[i]);
+        printf(" %s\n", currency);
     }
 
     free(balances);
