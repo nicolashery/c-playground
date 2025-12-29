@@ -1775,6 +1775,7 @@ bool parse_ledger(Ledger *ledger) {
         return false;
     }
 
+    token_array_free(tokens);
     return true;
 }
 
