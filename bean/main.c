@@ -370,7 +370,7 @@ void transaction_array_push(TransactionArray *arr, Transaction value) {
 }
 
 typedef struct {
-    // Ownership: File buffer is not owned by Ledger and needs to be freed by caller
+    // Can be NULL for ledgers created manually (ex: for tests)
     char *file_buffer;
     StringSliceArray *currencies;
     AccountArray *accounts;
@@ -378,13 +378,13 @@ typedef struct {
     TransactionArray *transactions;
 } Ledger;
 
-Ledger *ledger_create(char *file_buffer) {
+Ledger *ledger_create() {
     Ledger *ledger = malloc(sizeof(Ledger));
     if (ledger == NULL) {
         return NULL;
     }
 
-    ledger->file_buffer = file_buffer;
+    ledger->file_buffer = NULL;
 
     ledger->currencies = string_slice_array_create(CURRENCY_ARRAY_INITIAL_CAPACITY);
     if (ledger->currencies == NULL) {
@@ -428,6 +428,11 @@ void ledger_free(Ledger *ledger) {
     account_array_free(ledger->accounts);
     posting_array_free(ledger->postings);
     transaction_array_free(ledger->transactions);
+
+    if (ledger->file_buffer != NULL) {
+        free(ledger->file_buffer);
+    }
+
     free(ledger);
 }
 
@@ -486,29 +491,10 @@ void print_ledger(Ledger *l) {
     }
 }
 
-void print_file_buffer(char *file_buffer) {
-    printf("\n");
-
-    printf("=================================\n");
-    printf("File buffer\n");
-    printf("=================================\n");
-    printf("%s\n", file_buffer);
-}
-
 int test_ledger() {
-// Ignore warnings for sprintf
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    char *file_buffer = malloc(1024);
-    if (file_buffer == NULL) {
-        printf("Error allocating file buffer\n");
-        return EXIT_FAILURE;
-    }
-
-    Ledger *l = ledger_create(file_buffer);
+    Ledger *l = ledger_create();
     if (l == NULL) {
         printf("Error allocating ledger\n");
-        free(file_buffer);
         return EXIT_FAILURE;
     }
 
@@ -517,78 +503,53 @@ int test_ledger() {
     Posting posting;
     Transaction txn;
 
-    char *cursor = file_buffer;
-
-    cursor += sprintf(cursor, "2014-01-01 commodity ");
-
-    char *start = cursor;
-    cursor += sprintf(cursor, "USD");
     currency = (StringSlice){
-        .start = start,
-        .len = (size_t)(cursor - start),
+        .start = "USD",
+        .len = strlen("USD"),
     };
     size_t currency_usd_index = l->currencies->size;
     string_slice_array_push(l->currencies, currency);
 
-    cursor += sprintf(cursor, "\n\n2014-01-01 open ");
-
-    start = cursor;
-    cursor += sprintf(cursor, "Assets:Checking");
     account = (Account){
         .type = ASSETS,
         .name =
             (StringSlice){
-                .start = start,
-                .len = (size_t)(cursor - start),
+                .start = "Assets:Checking",
+                .len = strlen("Assets:Checking"),
             },
     };
     size_t account_assets_checking_index = l->accounts->size;
     account_array_push(l->accounts, account);
 
-    cursor += sprintf(cursor, "\n2014-01-01 open ");
-
-    start = cursor;
-    cursor += sprintf(cursor, "Expenses:Food");
     account = (Account){
         .type = EXPENSES,
         .name =
             (StringSlice){
-                .start = start,
-                .len = (size_t)(cursor - start),
+                .start = "Expenses:Food",
+                .len = strlen("Expenses:Food"),
             },
     };
     size_t account_expenses_food_index = l->accounts->size;
     account_array_push(l->accounts, account);
 
-    cursor += sprintf(cursor, "\n\n2014-01-05 * \"");
     txn.date = (Date){
         .year = 2014,
         .month = 1,
         .day = 5,
     };
     txn.flag = FLAG_OKAY;
-
-    start = cursor;
-    cursor += sprintf(cursor, "Whole Foods");
     txn.payee = (StringSlice){
-        .start = start,
-        .len = (size_t)(cursor - start),
+        .start = "Whole Foods",
+        .len = strlen("Whole Foods"),
     };
-
-    cursor += sprintf(cursor, "\" \"");
-
-    start = cursor;
-    cursor += sprintf(cursor, "Groceries");
     txn.narration = (StringSlice){
-        .start = start,
-        .len = (size_t)(cursor - start),
+        .start = "Groceries",
+        .len = strlen("Groceries"),
     };
 
-    cursor += sprintf(cursor, "\"\n");
     txn.postings_count = 0;
     txn.postings_start_index = l->postings->size;
 
-    cursor += sprintf(cursor, "  Expenses:Food            -45.12 USD\n");
     posting.account_index = account_expenses_food_index;
     posting.amount = (Amount){
         .number = -4512,
@@ -597,7 +558,6 @@ int test_ledger() {
     posting_array_push(l->postings, posting);
     txn.postings_count++;
 
-    (void)sprintf(cursor, "  Assets:Checking           45.12 USD\n");
     posting.account_index = account_assets_checking_index;
     posting.amount = (Amount){
         .number = 4512,
@@ -609,14 +569,10 @@ int test_ledger() {
     transaction_array_push(l->transactions, txn);
 
     print_ledger(l);
-    printf("\n");
-    print_file_buffer(file_buffer);
 
     ledger_free(l);
-    free(file_buffer);
 
     return EXIT_SUCCESS;
-#pragma clang diagnostic pop
 }
 
 char *read_file(char *file_path) {
@@ -682,8 +638,8 @@ char *read_file(char *file_path) {
     return buffer;
 }
 
-int test_file(char *ledger_path) {
-    char *file_buffer = read_file(ledger_path);
+int test_file(char *path) {
+    char *file_buffer = read_file(path);
     if (file_buffer == NULL) {
         printf("Error reading file\n");
         return EXIT_FAILURE;
@@ -692,6 +648,24 @@ int test_file(char *ledger_path) {
     printf("%s\n", file_buffer);
     free(file_buffer);
     return EXIT_SUCCESS;
+}
+
+Ledger *ledger_create_from_file(char *path) {
+    char *file_buffer = read_file(path);
+    if (file_buffer == NULL) {
+        printf("Error reading file\n");
+        return NULL;
+    }
+
+    Ledger *ledger = ledger_create();
+    if (ledger == NULL) {
+        printf("Error allocating ledger\n");
+        free(file_buffer);
+        return NULL;
+    }
+
+    ledger->file_buffer = file_buffer;
+    return ledger;
 }
 
 typedef enum {
@@ -1763,14 +1737,14 @@ void parse_next(Parser *p) {
     p->error_line = t->line;
 }
 
-bool parse_ledger(char *file_buffer, Ledger *ledger) {
+bool parse_ledger(Ledger *ledger) {
     TokenArray *tokens = token_array_create(TOKEN_ARRAY_INITIAL_CAPACITY);
     if (tokens == NULL) {
         printf("Error allocating token array\n");
         return false;
     }
 
-    Scanner scanner = scanner_init(file_buffer);
+    Scanner scanner = scanner_init(ledger->file_buffer);
     Token token = {0};
     for (;;) {
         token = scanner_next_token(&scanner);
@@ -1805,23 +1779,15 @@ bool parse_ledger(char *file_buffer, Ledger *ledger) {
 }
 
 int test_parser(char *ledger_path) {
-    char *file_buffer = read_file(ledger_path);
-    if (file_buffer == NULL) {
-        printf("Error reading file\n");
-        return EXIT_FAILURE;
-    }
-
-    Ledger *ledger = ledger_create(file_buffer);
+    Ledger *ledger = ledger_create_from_file(ledger_path);
     if (ledger == NULL) {
-        printf("Error allocating ledger\n");
-        free(file_buffer);
+        printf("Error creating ledger\n");
         return EXIT_FAILURE;
     }
 
-    bool success = parse_ledger(file_buffer, ledger);
+    bool success = parse_ledger(ledger);
 
     if (!success) {
-        free(file_buffer);
         ledger_free(ledger);
 
         return EXIT_FAILURE;
@@ -1829,7 +1795,6 @@ int test_parser(char *ledger_path) {
 
     print_ledger(ledger);
 
-    free(file_buffer);
     ledger_free(ledger);
 
     return EXIT_SUCCESS;
@@ -1865,23 +1830,15 @@ bool check_single_currency(Ledger *l) {
 }
 
 int run_check(char *ledger_path) {
-    char *file_buffer = read_file(ledger_path);
-    if (file_buffer == NULL) {
-        printf("Error reading file\n");
-        return EXIT_FAILURE;
-    }
-
-    Ledger *ledger = ledger_create(file_buffer);
+    Ledger *ledger = ledger_create_from_file(ledger_path);
     if (ledger == NULL) {
-        printf("Error allocating ledger\n");
-        free(file_buffer);
+        printf("Error creating ledger\n");
         return EXIT_FAILURE;
     }
 
-    bool parse_success = parse_ledger(file_buffer, ledger);
+    bool parse_success = parse_ledger(ledger);
 
     if (!parse_success) {
-        free(file_buffer);
         ledger_free(ledger);
 
         return EXIT_FAILURE;
@@ -1895,7 +1852,6 @@ int run_check(char *ledger_path) {
         check_success = false;
     }
 
-    free(file_buffer);
     ledger_free(ledger);
 
     return check_success ? EXIT_SUCCESS : EXIT_FAILURE;
