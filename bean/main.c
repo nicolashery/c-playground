@@ -1830,6 +1830,18 @@ bool check_single_currency(Ledger *l) {
     return true;
 }
 
+bool check_ledger(Ledger *ledger) {
+    if (!check_single_currency(ledger)) {
+        return false;
+    }
+
+    if (!check_transactions_balanced(ledger)) {
+        return false;
+    }
+
+    return true;
+}
+
 int run_check(char *ledger_path) {
     Ledger *ledger = ledger_create_from_file(ledger_path);
     if (ledger == NULL) {
@@ -1837,31 +1849,66 @@ int run_check(char *ledger_path) {
         return EXIT_FAILURE;
     }
 
-    bool parse_success = parse_ledger(ledger);
+    bool success = true;
 
-    if (!parse_success) {
+    success = parse_ledger(ledger);
+    if (!success) {
         ledger_free(ledger);
-
         return EXIT_FAILURE;
     }
 
-    bool check_success = true;
-    if (!check_single_currency(ledger)) {
-        check_success = false;
-    }
-    if (!check_transactions_balanced(ledger)) {
-        check_success = false;
-    }
+    success = check_ledger(ledger);
 
     ledger_free(ledger);
 
-    return check_success ? EXIT_SUCCESS : EXIT_FAILURE;
+    return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 int run_balance(char *ledger_path) {
-    (void)ledger_path;
-    printf("Not implemented\n");
-    return EXIT_FAILURE;
+    Ledger *ledger = ledger_create_from_file(ledger_path);
+    if (ledger == NULL) {
+        printf("Error creating ledger\n");
+        return EXIT_FAILURE;
+    }
+
+    bool success = true;
+
+    success = parse_ledger(ledger);
+    if (!success) {
+        ledger_free(ledger);
+        return EXIT_FAILURE;
+    }
+
+    success = check_ledger(ledger);
+    if (!success) {
+        ledger_free(ledger);
+        return EXIT_FAILURE;
+    }
+
+    long *balances = calloc(ledger->accounts->size, sizeof(long));
+    if (balances == NULL) {
+        ledger_free(ledger);
+        printf("Error allocating balances array\n");
+        return EXIT_FAILURE;
+    }
+
+    for (size_t i = 0; i < ledger->postings->size; i++) {
+        Posting *posting = &ledger->postings->data[i];
+        balances[posting->account_index] += posting->amount.number;
+    }
+
+    assert(ledger->currencies->size == 1 && "Expected single currency");
+    char currency[MAX_TOKEN_LENGTH] = {0};
+    slice_to_cstr(ledger->currencies->data[0], currency, MAX_TOKEN_LENGTH);
+
+    for (size_t i = 0; i < ledger->accounts->size; i++) {
+        print_slice(ledger->accounts->data[i].name);
+        printf(" %ld cents %s\n", balances[i], currency);
+    }
+
+    free(balances);
+
+    return EXIT_SUCCESS;
 }
 
 void print_usage() {
