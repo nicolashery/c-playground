@@ -1,0 +1,8 @@
+2014-01-01 commodity USD
+
+2014-01-01 open Assets:Checking
+2014-01-01 open Expenses:Food
+
+2014-01-05 * "Groceries"
+  Expenses:Food     50.00 USD
+  Assets:Checking  -50.00 USD

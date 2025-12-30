@@ -1,0 +1,2 @@
+Only a single currency per ledger is supported, got 2
+

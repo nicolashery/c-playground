@@ -1,0 +1,13 @@
+Assets:Checking           2150.00 USD
+Assets:Savings            5000.00 USD
+Liabilities:CreditCard       0.00 USD
+Equity:OpeningBalances   -5500.00 USD
+Income:Salary            -3000.00 USD
+Expenses:Groceries         150.00 USD
+Expenses:Rent             1200.00 USD
+
+Assets                    7150.00 USD
+Liabilities                  0.00 USD
+Equity                   -5500.00 USD
+Income                   -3000.00 USD
+Expenses                  1350.00 USD

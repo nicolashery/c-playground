@@ -1,0 +1,31 @@
+2014-01-01 commodity USD
+
+2014-01-01 open Assets:Checking
+2014-01-01 open Assets:Savings
+2014-01-01 open Liabilities:CreditCard
+2014-01-01 open Equity:OpeningBalances
+2014-01-01 open Income:Salary
+2014-01-01 open Expenses:Groceries
+2014-01-01 open Expenses:Rent
+
+2014-01-02 * "Opening balances"
+  Assets:Checking           1000.00 USD
+  Assets:Savings            5000.00 USD
+  Liabilities:CreditCard    -500.00 USD
+  Equity:OpeningBalances   -5500.00 USD
+
+2014-01-15 * "Salary"
+  Assets:Checking  3000.00 USD
+  Income:Salary   -3000.00 USD
+
+2014-01-20 * "Groceries"
+  Expenses:Groceries       150.00 USD
+  Liabilities:CreditCard  -150.00 USD
+
+2014-01-25 * "Rent"
+  Expenses:Rent      1200.00 USD
+  Assets:Checking   -1200.00 USD
+
+2014-01-30 * "Pay credit card"
+  Liabilities:CreditCard  650.00 USD
+  Assets:Checking        -650.00 USD

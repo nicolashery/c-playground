@@ -1,0 +1,22 @@
+=================================
+Currencies
+=================================
+USD
+
+=================================
+Accounts
+=================================
+Assets:Checking
+Expenses:Food
+
+=================================
+Transactions
+=================================
+Date: 2014-01-05
+Flag: *
+Payee: Whole Foods
+Narration: Groceries
+Postings:
+ Expenses:Food -45.12 USD
+ Assets:Checking 45.12 USD
+

@@ -1,0 +1,39 @@
+=================================
+Currencies
+=================================
+USD
+
+=================================
+Accounts
+=================================
+Assets:Checking
+Equity:OpeningBalances
+Expenses:Food
+
+=================================
+Transactions
+=================================
+Date: 2014-01-02
+Flag: txn
+Payee: NULL
+Narration: "Deposit"
+Postings:
+ Assets:Checking 100.00 USD
+ Equity:OpeningBalances -100.00 USD
+
+Date: 2014-01-05
+Flag: *
+Payee: "Whole Foods"
+Narration: "Groceries"
+Postings:
+ Expenses:Food -45.12 USD
+ Assets:Checking 45.12 USD
+
+Date: 2024-01-07
+Flag: !
+Payee: "Costco"
+Narration: "Party supplies"
+Postings:
+ Expenses:Food 95.47 USD
+ Assets:Checking -95.47 USD
+

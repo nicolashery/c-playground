@@ -1,0 +1,1 @@
+Parse error: Unrecognized keyword 'close' (line 5)

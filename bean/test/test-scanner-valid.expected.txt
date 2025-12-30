@@ -1,0 +1,67 @@
+DATE [line 1] 2014-01-01
+KEYWORD [line 1] commodity
+CURRENCY [line 1] USD
+NEWLINE [line 1]
+NEWLINE [line 2]
+DATE [line 4] 2014-01-01
+KEYWORD [line 4] open
+ACCOUNT [line 4] Assets:Checking
+NEWLINE [line 4]
+DATE [line 5] 2014-01-01
+KEYWORD [line 5] open
+ACCOUNT [line 5] Equity:OpeningBalances
+NEWLINE [line 5]
+DATE [line 6] 2014-01-01
+KEYWORD [line 6] open
+ACCOUNT [line 6] Expenses:Food
+NEWLINE [line 6]
+NEWLINE [line 7]
+DATE [line 10] 2014-01-02
+KEYWORD [line 10] txn
+STRING [line 10] "Deposit"
+NEWLINE [line 10]
+INDENT [line 11] (size 2)
+ACCOUNT [line 11] Assets:Checking
+NUMBER [line 11] 100.00
+CURRENCY [line 11] USD
+NEWLINE [line 11]
+INDENT [line 12] (size 2)
+ACCOUNT [line 12] Equity:OpeningBalances
+NUMBER [line 12] -100.00
+CURRENCY [line 12] USD
+NEWLINE [line 12]
+NEWLINE [line 13]
+DATE [line 14] 2014-01-05
+FLAG [line 14] *
+STRING [line 14] "Whole Foods"
+STRING [line 14] "Groceries"
+NEWLINE [line 14]
+INDENT [line 15] (size 2)
+ACCOUNT [line 15] Expenses:Food
+NUMBER [line 15] -45.12
+CURRENCY [line 15] USD
+NEWLINE [line 15]
+INDENT [line 16] (size 2)
+ACCOUNT [line 16] Assets:Checking
+NUMBER [line 16] 45.12
+CURRENCY [line 16] USD
+NEWLINE [line 16]
+NEWLINE [line 17]
+NEWLINE [line 19]
+NEWLINE [line 20]
+DATE [line 21] 2024-01-07
+FLAG [line 21] !
+STRING [line 21] "Costco"
+STRING [line 21] "Party supplies"
+NEWLINE [line 21]
+INDENT [line 23] (size 2)
+ACCOUNT [line 23] Expenses:Food
+NUMBER [line 23] 95.47
+CURRENCY [line 23] USD
+NEWLINE [line 23]
+INDENT [line 24] (size 2)
+ACCOUNT [line 24] Assets:Checking
+NUMBER [line 24] -95.47
+CURRENCY [line 24] USD
+NEWLINE [line 24]
+EOF

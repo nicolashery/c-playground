@@ -2026,17 +2026,6 @@ void print_usage() {
     printf("\n");
 }
 
-char *get_ledger_path(int argc, char *argv[]) {
-    if (argc < 3) {
-        printf("Missing ledger file argument\n");
-        printf("\n");
-        print_usage();
-        return NULL;
-    }
-
-    return argv[2];
-}
-
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         printf("Missing command argument\n");
@@ -2052,30 +2041,59 @@ int main(int argc, char *argv[]) {
     }
 
     if (strcmp(command, "check") == 0) {
-        char *ledger_path = get_ledger_path(argc, argv);
-        if (ledger_path == NULL) {
+        if (argc < 3) {
+            printf("Missing ledger file argument\n");
+            printf("\n");
+            print_usage();
             return EXIT_FAILURE;
         }
-        return run_check(ledger_path);
+        return run_check(argv[2]);
     }
 
     if (strcmp(command, "balance") == 0) {
-        char *ledger_path = get_ledger_path(argc, argv);
-        if (ledger_path == NULL) {
+        if (argc < 3) {
+            printf("Missing ledger file argument\n");
+            printf("\n");
+            print_usage();
             return EXIT_FAILURE;
         }
-        return run_balance(ledger_path);
+        return run_balance(argv[2]);
     }
 
     if (strcmp(command, "test") == 0) {
-        // return test_ledger();
-        char *ledger_path = get_ledger_path(argc, argv);
-        if (ledger_path == NULL) {
+        if (argc < 3) {
+            printf("Missing test component argument\n");
+            printf("\n");
             return EXIT_FAILURE;
         }
-        // return test_file(ledger_path);
-        // return test_scanner(ledger_path);
-        return test_parser(ledger_path);
+
+        char *component = argv[2];
+
+        if (strcmp(component, "ledger") == 0) {
+            return test_ledger();
+        }
+
+        if (strcmp(component, "scanner") == 0) {
+            if (argc < 4) {
+                printf("Missing ledger file argument for test\n");
+                printf("\n");
+                return EXIT_FAILURE;
+            }
+            return test_scanner(argv[3]);
+        }
+
+        if (strcmp(component, "parser") == 0) {
+            if (argc < 4) {
+                printf("Missing ledger file argument for test\n");
+                printf("\n");
+                return EXIT_FAILURE;
+            }
+            return test_parser(argv[3]);
+        }
+
+        printf("Unknown test component: %s\n", component);
+        printf("\n");
+        return EXIT_FAILURE;
     }
 
     printf("Unknown command: %s\n", command);

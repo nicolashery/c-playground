@@ -83,6 +83,12 @@ tasks:
     cmds:
       - cd {{.BUILD_DIR}} && ctest --output-on-failure
 
+  test:bean:
+    desc: Run Bean tests
+    deps: [build:bean]
+    cmds:
+      - ./bean/test.sh
+
   test:math_lib:
     desc: Run math_lib tests
     cmds:
