@@ -13,57 +13,65 @@
 /* ============================================================================ */
 
 int run_check(char *ledger_path) {
-    Ledger *ledger = ledger_create_from_file(ledger_path);
+    int result = EXIT_SUCCESS;
+    Ledger *ledger = NULL;
+
+    ledger = ledger_create_from_file(ledger_path);
     if (ledger == NULL) {
         printf("Error creating ledger\n");
-        return EXIT_FAILURE;
+        result = EXIT_FAILURE;
+        goto cleanup;
     }
 
-    bool success = true;
-
-    success = parse_ledger(ledger);
-    if (!success) {
-        ledger_free(ledger);
-        return EXIT_FAILURE;
+    if (!parse_ledger(ledger)) {
+        result = EXIT_FAILURE;
+        goto cleanup;
     }
 
-    success = check_ledger(ledger);
+    if (!check_ledger(ledger)) {
+        result = EXIT_FAILURE;
+        goto cleanup;
+    }
 
+cleanup:
     ledger_free(ledger);
-
-    return success ? EXIT_SUCCESS : EXIT_FAILURE;
+    return result;
 }
 
 /* ============================================================================ */
 /* Balance                                                                      */
 /* ============================================================================ */
 
+typedef char BalanceString[MAX_NUMBER_LENGTH];
+
 int run_balance(char *ledger_path) {
-    Ledger *ledger = ledger_create_from_file(ledger_path);
+    int result = EXIT_SUCCESS;
+    Ledger *ledger = NULL;
+    long *balances = NULL;
+    BalanceString *balance_strs = NULL;
+
+    ledger = ledger_create_from_file(ledger_path);
     if (ledger == NULL) {
         printf("Error creating ledger\n");
-        return EXIT_FAILURE;
+        result = EXIT_FAILURE;
+        goto cleanup;
     }
 
-    bool success = true;
-
-    success = parse_ledger(ledger);
-    if (!success) {
-        ledger_free(ledger);
-        return EXIT_FAILURE;
+    if (!parse_ledger(ledger)) {
+        result = EXIT_FAILURE;
+        goto cleanup;
     }
 
-    success = check_ledger(ledger);
-    if (!success) {
-        ledger_free(ledger);
-        return EXIT_FAILURE;
+    if (!check_ledger(ledger)) {
+        result = EXIT_FAILURE;
+        goto cleanup;
     }
 
-    long *balances = calloc(ledger->accounts->size, sizeof(long));
+    balances = calloc(ledger->accounts->size, sizeof(long));
     if (balances == NULL) {
-        ledger_free(ledger);
         printf("Error allocating balances array\n");
-        return EXIT_FAILURE;
+        result = EXIT_FAILURE;
+        goto cleanup;
     }
 
     for (size_t i = 0; i < ledger->postings->size; i++) {
@@ -93,14 +101,11 @@ int run_balance(char *ledger_path) {
         }
     }
 
-    typedef char BalanceString[MAX_NUMBER_LENGTH];
-
-    BalanceString *balance_strs = calloc(ledger->accounts->size, sizeof(BalanceString));
+    balance_strs = calloc(ledger->accounts->size, sizeof(BalanceString));
     if (balance_strs == NULL) {
-        ledger_free(ledger);
-        free(balances);
         printf("Error allocating balance strings array\n");
-        return EXIT_FAILURE;
+        result = EXIT_FAILURE;
+        goto cleanup;
     }
     size_t max_balance_length = 0;
     for (size_t i = 0; i < ledger->accounts->size; i++) {
@@ -138,9 +143,9 @@ int run_balance(char *ledger_path) {
         printf(" %s\n", currency);
     }
 
-    free(balances);
+cleanup:
     free(balance_strs);
+    free(balances);
     ledger_free(ledger);
-
-    return EXIT_SUCCESS;
+    return result;
 }

@@ -313,47 +313,6 @@ void transaction_array_push(TransactionArray *arr, Transaction value) {
 /* Ledger                                                                       */
 /* ============================================================================ */
 
-Ledger *ledger_create() {
-    Ledger *ledger = malloc(sizeof(Ledger));
-    if (ledger == NULL) {
-        return NULL;
-    }
-
-    ledger->file_buffer = NULL;
-
-    ledger->currencies = string_slice_array_create(CURRENCY_ARRAY_INITIAL_CAPACITY);
-    if (ledger->currencies == NULL) {
-        free(ledger);
-        return NULL;
-    }
-
-    ledger->accounts = account_array_create(ACCOUNT_ARRAY_INITIAL_CAPACITY);
-    if (ledger->accounts == NULL) {
-        string_slice_array_free(ledger->currencies);
-        free(ledger);
-        return NULL;
-    }
-
-    ledger->postings = posting_array_create(POSTING_ARRAY_INITIAL_CAPACITY);
-    if (ledger->postings == NULL) {
-        string_slice_array_free(ledger->currencies);
-        account_array_free(ledger->accounts);
-        free(ledger);
-        return NULL;
-    }
-
-    ledger->transactions = transaction_array_create(TRANSACTION_ARRAY_INITIAL_CAPACITY);
-    if (ledger->transactions == NULL) {
-        string_slice_array_free(ledger->currencies);
-        account_array_free(ledger->accounts);
-        posting_array_free(ledger->postings);
-        free(ledger);
-        return NULL;
-    }
-
-    return ledger;
-}
-
 void ledger_free(Ledger *ledger) {
     if (ledger == NULL) {
         return;
@@ -369,6 +328,45 @@ void ledger_free(Ledger *ledger) {
     }
 
     free(ledger);
+}
+
+Ledger *ledger_create() {
+    Ledger *ledger = malloc(sizeof(Ledger));
+    if (ledger == NULL) {
+        return NULL;
+    }
+
+    ledger->file_buffer = NULL;
+    ledger->currencies = NULL;
+    ledger->accounts = NULL;
+    ledger->postings = NULL;
+    ledger->transactions = NULL;
+
+    ledger->currencies = string_slice_array_create(CURRENCY_ARRAY_INITIAL_CAPACITY);
+    if (ledger->currencies == NULL) {
+        ledger_free(ledger);
+        return NULL;
+    }
+
+    ledger->accounts = account_array_create(ACCOUNT_ARRAY_INITIAL_CAPACITY);
+    if (ledger->accounts == NULL) {
+        ledger_free(ledger);
+        return NULL;
+    }
+
+    ledger->postings = posting_array_create(POSTING_ARRAY_INITIAL_CAPACITY);
+    if (ledger->postings == NULL) {
+        ledger_free(ledger);
+        return NULL;
+    }
+
+    ledger->transactions = transaction_array_create(TRANSACTION_ARRAY_INITIAL_CAPACITY);
+    if (ledger->transactions == NULL) {
+        ledger_free(ledger);
+        return NULL;
+    }
+
+    return ledger;
 }
 
 /* ============================================================================ */

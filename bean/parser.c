@@ -590,15 +590,14 @@ bool parse_ledger(Ledger *ledger) {
         }
     }
 
+    bool success = true;
     if (parser.has_error) {
         parser_print_error(&parser);
-
-        token_array_free(tokens);
-        return false;
+        success = false;
     }
 
     token_array_free(tokens);
-    return true;
+    return success;
 }
 
 /* ============================================================================ */
@@ -613,16 +612,11 @@ int test_parser(char *ledger_path) {
     }
 
     bool success = parse_ledger(ledger);
-
-    if (!success) {
-        ledger_free(ledger);
-
-        return EXIT_FAILURE;
+    if (success) {
+        print_ledger(ledger);
     }
-
-    print_ledger(ledger);
 
     ledger_free(ledger);
 
-    return EXIT_SUCCESS;
+    return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
