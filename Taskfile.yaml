@@ -56,12 +56,8 @@ tasks:
   run:bean:
     desc: Run Bean
     deps: [build:bean]
-    vars:
-      LEDGER_PATH: bean/data/simple.bean
     cmds:
-      # - ./{{.BUILD_DIR}}/bean/bean check {{.LEDGER_PATH}}
-      - ./{{.BUILD_DIR}}/bean/bean balance {{.LEDGER_PATH}}
-      # - ./{{.BUILD_DIR}}/bean/bean test {{.LEDGER_PATH}}
+      - ./{{.BUILD_DIR}}/bean/bean {{.CLI_ARGS}}
 
   run:scratch:
     desc: Run Scratch

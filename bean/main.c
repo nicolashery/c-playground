@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <ctype.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -180,6 +181,8 @@ typedef struct {
     // notably to simplify memory management and avoid small allocations
     size_t postings_start_index;
     size_t postings_count;
+    // Line number where transaction was defined
+    size_t line;
 } Transaction;
 
 typedef struct {
@@ -602,6 +605,8 @@ int test_ledger() {
     };
     posting_array_push(l->postings, posting);
     txn.postings_count++;
+
+    txn.line = 0;
 
     transaction_array_push(l->transactions, txn);
 
@@ -1604,6 +1609,7 @@ void parse_transaction(Parser *p) {
         return;
     }
     Date date = parse_date(t->text);
+    size_t line = t->line;
 
     // Parse "txn" keyword, or a flag
     Flag flag = FLAG_NONE;
@@ -1684,6 +1690,8 @@ void parse_transaction(Parser *p) {
         posting_array_push(l->postings, posting);
         transaction.postings_count++;
     }
+
+    transaction.line = line;
 
     if (p->has_error) {
         return;
@@ -1850,7 +1858,7 @@ bool check_transactions_balanced(Ledger *l) {
             sum += p->amount.number;
         }
         if (sum != 0) {
-            printf("Transaction does not balance (%ld cents):\n\n", sum);
+            printf("Line %zu: Transaction does not balance (%ld cents):\n\n", t->line, sum);
             print_transaction(l, t);
             printf("\n");
 
@@ -2012,7 +2020,7 @@ int run_balance(char *ledger_path) {
 
 void print_usage() {
     printf("Usage:\n\n");
-    printf("  bean --help|-h              Print this text\n");
+    printf("  bean --help | -h            Print this text\n");
     printf("  bean check <ledger_file>    Parse and check ledger file\n");
     printf("  bean balance <ledger_file>  Compute per-account balances\n");
     printf("\n");
