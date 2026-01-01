@@ -1,0 +1,81 @@
+; Expected ending balances:
+;
+; Assets:Cash                      53.50 USD
+; Assets:Checking                3224.53 USD
+; Assets:Savings                 1001.25 USD
+; Liabilities:CreditCard:Visa    -131.25 USD
+; Equity:OpeningBalances        -2939.65 USD
+; Income:Employer:Salary        -4000.00 USD
+; Income:Interest                  -1.25 USD
+; Expenses:Food:Coffee              6.50 USD
+; Expenses:Food:Groceries          95.47 USD
+; Expenses:Housing:Rent          1800.00 USD
+; Expenses:Restaurant              42.18 USD
+; Expenses:Taxes:Withholding      800.00 USD
+; Expenses:Transport:Gas           48.72 USD
+;
+; Assets                         4279.28 USD
+; Liabilities                    -131.25 USD
+; Equity                        -2939.65 USD
+; Income                        -4001.25 USD
+; Expenses                       2792.87 USD
+
+2014-01-01 commodity USD
+
+2024-01-01 open Assets:Cash
+2024-01-01 open Assets:Checking
+2024-01-01 open Assets:Savings
+2024-01-01 open Liabilities:CreditCard:Visa
+2024-01-01 open Equity:OpeningBalances
+2024-01-01 open Income:Employer:Salary
+2024-01-01 open Income:Interest
+2024-01-01 open Expenses:Food:Coffee
+2024-01-01 open Expenses:Food:Groceries
+2024-01-01 open Expenses:Housing:Rent
+2024-01-01 open Expenses:Restaurant
+2024-01-01 open Expenses:Taxes:Withholding
+2024-01-01 open Expenses:Transport:Gas
+
+2024-01-01 * "Opening Balances"
+  Assets:Checking               2500.00 USD
+  Assets:Savings                 500.00 USD
+  Assets:Cash                     60.00 USD
+  Liabilities:CreditCard:Visa   -120.35 USD
+  Equity:OpeningBalances       -2939.65 USD
+
+2024-01-02 txn "Landlord" "Rent - January"
+  Expenses:Housing:Rent         1800.00 USD
+  Assets:Checking              -1800.00 USD
+
+2024-01-05 * "Acme Corp" "Bi-weekly salary"
+  Assets:Checking               3200.00 USD
+  Income:Employer:Salary       -4000.00 USD
+  Expenses:Taxes:Withholding     800.00 USD
+
+2024-01-06 txn "Transfer" "Move to savings"
+  Assets:Savings                 500.00 USD
+  Assets:Checking               -500.00 USD
+
+2024-01-07 * "Whole Foods" "Groceries"
+  Expenses:Food:Groceries         95.47 USD
+  Assets:Checking                -95.47 USD
+
+2024-01-08 * "Shell" "Gas"
+  Expenses:Transport:Gas          48.72 USD
+  Liabilities:CreditCard:Visa    -48.72 USD
+
+2024-01-09 * "Joe Beef" "Dinner"
+  Liabilities:CreditCard:Visa    -42.18 USD
+  Expenses:Restaurant             42.18 USD
+
+2024-01-10 * "Cafe Olimpico" "Coffee"
+  Expenses:Food:Coffee             6.50 USD
+  Assets:Cash                     -6.50 USD
+
+2024-01-12 txn "Visa" "Payment"
+  Liabilities:CreditCard:Visa     80.00 USD
+  Assets:Checking                -80.00 USD
+
+2024-01-31 txn "Bank" "Savings interest"
+  Assets:Savings                   1.25 USD
+  Income:Interest                 -1.25 USD

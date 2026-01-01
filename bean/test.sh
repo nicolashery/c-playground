@@ -49,9 +49,9 @@ run_test "bean test parser bean/test/valid.bean" \
     "$TEST_DIR/test-parser-valid.expected.txt"
 
 # End-to-end tests (happy path)
-run_test "bean check bean/test/simple.bean" \
-    "$BEAN check $TEST_DIR/simple.bean" \
-    "$TEST_DIR/check-simple.expected.txt"
+run_test "bean check bean/test/minimal.bean" \
+    "$BEAN check $TEST_DIR/minimal.bean" \
+    "$TEST_DIR/check-minimal.expected.txt"
 
 run_test "bean balance bean/test/balance.bean" \
     "$BEAN balance $TEST_DIR/balance.bean" \
