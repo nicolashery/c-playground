@@ -2,11 +2,13 @@
 
 Repo with multiple small projects as I play around with C and learn low-level programming and manual memory management.
 
+**NOTICE**: These are _learning_ projects for my own benefit, and the code here is not meant to represent any best practices in C or manual memory management. That said, feel free to take a peek and use as inspiration! :)
+
 ## Projects
 
 - `bean/`: Small CLI tool that parses a subset of [Beancount](https://github.com/beancount/beancount) plain-text accounting
-- `scratch/`: Scratch project to try out various things that don't warrant their own project
 - `dodge/`: Dodge the Blocks game using Raylib
+- `scratch/`: Scratch project to try out various things that don't warrant their own project
 
 The `libs/` directory contains any shared libraries between projects:
 - `libs/math_utils/`: Example shared library, doesn't really do anything useful
@@ -74,6 +76,12 @@ For all available commands see [`Taskfile.yaml`](`Taskfile.yaml`) or run `task` 
 ## Conventions
 
 See [STYLE.md](STYLE.md) for C style conventions used in this repo.
+
+## AI disclaimer
+
+I used AI in "teacher/tutor" mode to give me hints or review my code. It was explicitly instructed not to write code for me or give me answers (that would defeat the point of learning!).
+
+AI was used to generate non-source code files (ex: CMake configuration files, data sample files, etc.), but every single line of C was (painstakingly) written by yours truly :)
 
 ## Credits
 
