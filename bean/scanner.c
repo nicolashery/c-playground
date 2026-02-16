@@ -1,5 +1,7 @@
 #include "scanner.h"
 
+#include "ledger.h"
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

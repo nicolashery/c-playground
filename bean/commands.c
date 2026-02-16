@@ -2,6 +2,7 @@
 
 #include "ledger.h"
 #include "parser.h"
+#include "scanner.h"
 
 #include <assert.h>
 #include <stdio.h>

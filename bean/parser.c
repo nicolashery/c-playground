@@ -1,5 +1,8 @@
 #include "parser.h"
 
+#include "ledger.h"
+#include "scanner.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

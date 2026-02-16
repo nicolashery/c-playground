@@ -42,7 +42,8 @@ CheckOptions:
   - key: bugprone-reserved-identifier.AllowedIdentifiers
     value: ""
 
-  # Suppress false positive warnings about transitive includes
-  # (ex: on macOS <time.h> includes <_time.h> which contains the actual symbols)
-  - key: misc-include-cleaner.MissingIncludes
-    value: false
+  # Unity here is the C unit-test framework (not the game engine).
+  # Its public header (unity.h) exposes macros via unity_internals.h, which trips
+  # misc-include-cleaner.MissingIncludes with false positives in test files.
+  - key: misc-include-cleaner.IgnoreHeaders
+    value: '(^|.*/)unity(_internals)?\.h$'
