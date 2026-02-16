@@ -17,7 +17,7 @@
   - optionally add `-Werror` when you want max strictness
 - Tooling:
   - `clang-format` enforces formatting
-  - `clang-tidy` enforces naming + bugprone + readability
+  - `clang-tidy` enforces naming and code-quality rules
   - CMake generates `compile_commands.json` for clangd
 
 ## Language profile
@@ -72,7 +72,8 @@
 ## Naming
 
 - functions/variables/params: `snake_case`
-- typedef’d types/structs/enums: `CamelCase`
+- typedef’d types/structs/enum types: `CamelCase`
+- enum constants: `UPPER_CASE`
 - macros: `UPPER_CASE`
 
 ## Types and declarations

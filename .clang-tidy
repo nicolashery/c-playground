@@ -1,16 +1,10 @@
 Checks: >
   -*,
-  bugprone-*,
-  cert-*,
   clang-analyzer-*,
-  modernize-*,
-  performance-*,
-  portability-*,
+  bugprone-*,
   readability-*,
   misc-*,
-  -modernize-use-trailing-return-type,
-  -modernize-macro-to-enum,
-  -modernize-use-nullptr,
+  portability-*,
   -readability-identifier-length,
   -readability-magic-numbers,
   -readability-avoid-const-params-in-decls,
@@ -35,6 +29,8 @@ CheckOptions:
     value: CamelCase
   - key: readability-identifier-naming.EnumCase
     value: CamelCase
+  - key: readability-identifier-naming.EnumConstantCase
+    value: UPPER_CASE
   - key: readability-identifier-naming.MacroDefinitionCase
     value: UPPER_CASE
 

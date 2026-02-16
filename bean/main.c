@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void print_usage() {
+void print_usage(void) {
     printf("Usage:\n\n");
     printf("  bean --help | -h            Print this text\n");
     printf("  bean check <ledger_file>    Parse and check ledger file\n");

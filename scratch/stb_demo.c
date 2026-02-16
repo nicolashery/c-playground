@@ -13,7 +13,7 @@ typedef struct {
 } IntHashMap;
 
 void demo_hash_map(void) {
-    IntHashMap *map = nullptr;
+    IntHashMap *map = NULL;
     sh_new_arena(map);
 
     shput(map, "foo", 1);

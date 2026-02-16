@@ -330,7 +330,7 @@ void ledger_free(Ledger *ledger) {
     free(ledger);
 }
 
-Ledger *ledger_create() {
+Ledger *ledger_create(void) {
     Ledger *ledger = malloc(sizeof(Ledger));
     if (ledger == NULL) {
         return NULL;
@@ -573,7 +573,7 @@ bool check_ledger(Ledger *ledger) {
 /* Test                                                                         */
 /* ============================================================================ */
 
-int test_ledger() {
+int test_ledger(void) {
     Ledger *l = ledger_create();
     if (l == NULL) {
         printf("Error allocating ledger\n");

@@ -1,5 +1,6 @@
 #include "raylib.h"
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -146,8 +147,8 @@ int main(void) {
     game_state_reset(&state);
 
     // Text buffers
-    char score_text_buffer[TEXT_BUFFER_LENGTH] = {};
-    char level_text_buffer[TEXT_BUFFER_LENGTH] = {};
+    char score_text_buffer[TEXT_BUFFER_LENGTH] = {0};
+    char level_text_buffer[TEXT_BUFFER_LENGTH] = {0};
 
     // For debugging
     SetRandomSeed(123456);
@@ -261,7 +262,7 @@ int main(void) {
                 state.time_since_last_spawn = 0.0F;
 
                 // Find first available block in pool
-                Block *block = nullptr;
+                Block *block = NULL;
                 for (size_t i = 0; i < MAX_BLOCKS; i++) {
                     if (!state.blocks[i].active) {
                         block = &state.blocks[i];
@@ -269,7 +270,7 @@ int main(void) {
                     }
                 }
 
-                if (block == nullptr) {
+                if (block == NULL) {
                     printf("[WARNING] Could not find a free block to spawn, consider increasing "
                            "MAX_BLOCKS (%d)",
                            MAX_BLOCKS);

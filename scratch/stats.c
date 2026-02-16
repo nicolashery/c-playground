@@ -11,14 +11,14 @@ typedef struct {
 
 IntArray *int_array_create(size_t capacity) {
     int *data = malloc(capacity * sizeof(int));
-    if (data == nullptr) {
-        return nullptr;
+    if (data == NULL) {
+        return NULL;
     }
 
     IntArray *arr = malloc(sizeof(IntArray));
-    if (arr == nullptr) {
+    if (arr == NULL) {
         free(data);
-        return nullptr;
+        return NULL;
     }
 
     arr->data = data;
@@ -36,7 +36,7 @@ void int_array_append(IntArray *arr, int value) {
 
     size_t new_capacity = arr->capacity * 2;
     int *new_data = realloc(arr->data, new_capacity * sizeof(int));
-    if (new_data == nullptr) {
+    if (new_data == NULL) {
         printf("WARNING: Failed to realloc IntArray with new capacity %zu, dropping value %d\n",
                new_capacity,
                value);
@@ -99,14 +99,14 @@ int stats_main(int argc, char *argv[]) {
 
     char *file_name = argv[1];
     FILE *file = fopen(file_name, "r");
-    if (file == nullptr) {
+    if (file == NULL) {
         printf("ERROR: Could not open file: %s\n", file_name);
         return EXIT_FAILURE;
     }
 
     // Allocating small size (8 ints) on purpose to demonstrate reallocation
     IntArray *arr = int_array_create(8);
-    if (arr == nullptr) {
+    if (arr == NULL) {
         printf("ERROR: Failed to allocate IntArray\n");
         (void)fclose(file);
         return EXIT_FAILURE;

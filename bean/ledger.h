@@ -1,6 +1,7 @@
 #ifndef LEDGER_H
 #define LEDGER_H
 
+#include <stdbool.h>
 #include <stddef.h>
 
 #define AMOUNT_DECIMAL_PLACES 2
@@ -148,7 +149,7 @@ typedef struct {
     TransactionArray *transactions;
 } Ledger;
 
-Ledger *ledger_create();
+Ledger *ledger_create(void);
 void ledger_free(Ledger *ledger);
 
 /* ============================================================================ */
@@ -174,7 +175,7 @@ bool check_ledger(Ledger *ledger);
 /* Test                                                                         */
 /* ============================================================================ */
 
-int test_ledger();
+int test_ledger(void);
 int test_file(char *path);
 
 #endif
