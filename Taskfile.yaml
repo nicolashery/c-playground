@@ -34,15 +34,20 @@ tasks:
     cmds:
       - cmake --build {{.BUILD_DIR}}
 
-  build:bean:
-    desc: Build Bean
+  build:base:
+    desc: Build base lib
     cmds:
-      - cmake --build {{.BUILD_DIR}} --target bean
+      - cmake --build {{.BUILD_DIR}} --target base
 
   build:scratch:
     desc: Build Scratch
     cmds:
       - cmake --build {{.BUILD_DIR}} --target scratch
+
+  build:bean:
+    desc: Build Bean
+    cmds:
+      - cmake --build {{.BUILD_DIR}} --target bean
 
   build:dodge:
     desc: Build Dodge
@@ -53,12 +58,6 @@ tasks:
   # Run
   # --------------------------------------------------
 
-  run:bean:
-    desc: Run Bean
-    deps: [build:bean]
-    cmds:
-      - ./{{.BUILD_DIR}}/bean/bean {{.CLI_ARGS}}
-
   run:scratch:
     desc: Run Scratch
     deps: [build:scratch]
@@ -66,6 +65,12 @@ tasks:
       STATS_PATH: data/stats.txt
     cmds:
       - cd {{.BUILD_DIR}}/scratch && ./scratch {{.STATS_PATH}}
+
+  run:bean:
+    desc: Run Bean
+    deps: [build:bean]
+    cmds:
+      - ./{{.BUILD_DIR}}/bean/bean {{.CLI_ARGS}}
 
   run:dodge:
     desc: Run Dodge

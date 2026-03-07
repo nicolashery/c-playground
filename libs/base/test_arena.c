@@ -1,10 +1,14 @@
 #include "arena.h"
 
+#include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 int main(void) {
+    printf("%zu\n", _Alignof(max_align_t));
+
     Arena *arena = arena_create(32);
 
     // 1 byte
