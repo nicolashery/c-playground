@@ -97,6 +97,12 @@ tasks:
       - ./{{.BUILD_DIR}}/libs/math_lib/test_math_utils
       - ./{{.BUILD_DIR}}/libs/math_lib/test_foo
 
+  test:base:
+    desc: Run base tests
+    cmds:
+      - cmake --build {{.BUILD_DIR}} --target test_arena
+      - ./{{.BUILD_DIR}}/libs/base/test_arena
+
   # --------------------------------------------------
   # Tools
   # --------------------------------------------------

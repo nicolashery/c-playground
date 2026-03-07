@@ -86,6 +86,7 @@ option(BUILD_SCRATCH "Build scratch" ON)
 option(BUILD_DODGE "Build dodge" ON)
 
 add_subdirectory(libs/math_lib)
+add_subdirectory(libs/base)
 
 if(BUILD_BEAN)
     add_subdirectory(bean)
