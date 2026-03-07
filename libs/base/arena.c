@@ -1,7 +1,9 @@
 #include "arena.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 
 Arena *arena_create(size_t size) {
     Arena *arena = malloc(sizeof(Arena));
@@ -37,11 +39,7 @@ void arena_reset(Arena *arena) {
     arena->offset = 0;
 }
 
-void *arena_alloc(Arena *arena, size_t size) {
-    return arena_alloc_aligned(arena, size, _Alignof(max_align_t));
-}
-
-void *arena_alloc_aligned(Arena *arena, size_t size, size_t alignment) {
+static void *arena_push(Arena *arena, size_t size, size_t alignment, bool zero) {
     if (size == 0) {
         return NULL;
     }
@@ -54,8 +52,27 @@ void *arena_alloc_aligned(Arena *arena, size_t size, size_t alignment) {
     }
 
     char *p = (char *)arena->memory + aligned_offset;
+    if (zero) {
+        memset(p, 0, size);
+    }
 
     arena->offset = new_offset;
 
     return p;
+}
+
+void *arena_alloc_aligned_no_zero(Arena *arena, size_t size, size_t alignment) {
+    return arena_push(arena, size, alignment, false);
+}
+
+void *arena_alloc_aligned(Arena *arena, size_t size, size_t alignment) {
+    return arena_push(arena, size, alignment, true);
+}
+
+void *arena_alloc_no_zero(Arena *arena, size_t size) {
+    return arena_push(arena, size, _Alignof(max_align_t), false);
+}
+
+void *arena_alloc(Arena *arena, size_t size) {
+    return arena_alloc_aligned(arena, size, _Alignof(max_align_t));
 }
