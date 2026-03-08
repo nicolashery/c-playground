@@ -1,5 +1,6 @@
 #include "arena.h"
 
+#include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -39,13 +40,18 @@ void arena_reset(Arena *arena) {
     arena->offset = 0;
 }
 
-static void *arena_push(Arena *arena, size_t size, size_t alignment, bool zero) {
+static bool is_power_of_two(size_t alignment) {
+    return alignment > 0 && (alignment & (alignment - 1)) == 0;
+}
+
+static void *arena_alloc_impl(Arena *arena, size_t size, size_t alignment, bool zero) {
     if (size == 0) {
         return NULL;
     }
 
-    size_t padding = (alignment - (arena->offset % alignment)) % alignment;
-    size_t aligned_offset = arena->offset + padding;
+    assert(is_power_of_two(alignment));
+
+    size_t aligned_offset = (arena->offset + alignment - 1) & ~(alignment - 1);
     size_t new_offset = aligned_offset + size;
     if (new_offset > arena->size) {
         return NULL;
@@ -62,15 +68,15 @@ static void *arena_push(Arena *arena, size_t size, size_t alignment, bool zero) 
 }
 
 void *arena_alloc_aligned_no_zero(Arena *arena, size_t size, size_t alignment) {
-    return arena_push(arena, size, alignment, false);
+    return arena_alloc_impl(arena, size, alignment, false);
 }
 
 void *arena_alloc_aligned(Arena *arena, size_t size, size_t alignment) {
-    return arena_push(arena, size, alignment, true);
+    return arena_alloc_impl(arena, size, alignment, true);
 }
 
 void *arena_alloc_no_zero(Arena *arena, size_t size) {
-    return arena_push(arena, size, _Alignof(max_align_t), false);
+    return arena_alloc_impl(arena, size, _Alignof(max_align_t), false);
 }
 
 void *arena_alloc(Arena *arena, size_t size) {
