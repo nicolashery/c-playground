@@ -76,9 +76,9 @@ void *arena_alloc_aligned(Arena *arena, size_t size, size_t alignment) {
 }
 
 void *arena_alloc_no_zero(Arena *arena, size_t size) {
-    return arena_alloc_impl(arena, size, _Alignof(max_align_t), false);
+    return arena_alloc_impl(arena, size, DEFAULT_ALIGNMENT, false);
 }
 
 void *arena_alloc(Arena *arena, size_t size) {
-    return arena_alloc_aligned(arena, size, _Alignof(max_align_t));
+    return arena_alloc_aligned(arena, size, DEFAULT_ALIGNMENT);
 }

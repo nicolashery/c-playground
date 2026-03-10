@@ -20,6 +20,10 @@ void *arena_alloc_aligned_no_zero(Arena *arena, size_t size, size_t alignment);
 
 void *arena_alloc_aligned(Arena *arena, size_t size, size_t alignment);
 
+#ifndef DEFAULT_ALIGNMENT
+#define DEFAULT_ALIGNMENT _Alignof(max_align_t)
+#endif
+
 void *arena_alloc_no_zero(Arena *arena, size_t size);
 
 void *arena_alloc(Arena *arena, size_t size);
