@@ -6,6 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct {
+    int age;
+    bool likes_pets;
+} Person;
+
 int main(void) {
     printf("%zu\n", _Alignof(max_align_t));
 
@@ -40,6 +45,11 @@ int main(void) {
     }
 
     arena_reset(arena);
+
+    // macro usage
+    arena_push(arena, Person);
+    arena_push(arena, double);
+    arena_push_array(arena, char, 8);
 
     arena_free(arena);
 
