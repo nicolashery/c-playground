@@ -82,3 +82,14 @@ void *arena_alloc_no_zero(Arena *arena, size_t size) {
 void *arena_alloc(Arena *arena, size_t size) {
     return arena_alloc_aligned(arena, size, DEFAULT_ALIGNMENT);
 }
+
+TempArena temp_arena_begin(Arena *arena) {
+    return (TempArena){
+        .arena = arena,
+        .offset = arena->offset,
+    };
+}
+
+void temp_arena_end(TempArena temp) {
+    temp.arena->offset = temp.offset;
+}

@@ -47,9 +47,17 @@ int main(void) {
     arena_reset(arena);
 
     // macro usage
-    arena_push(arena, Person);
-    arena_push(arena, double);
+    (void)arena_push(arena, Person);
+    (void)arena_push(arena, double);
+    (void)arena_push_array(arena, char, 8);
+
+    arena_reset(arena);
+
+    // temp arena usage
+    arena_push(arena, int32_t);
+    TempArena temp = temp_arena_begin(arena);
     arena_push_array(arena, char, 8);
+    temp_arena_end(temp);
 
     arena_free(arena);
 

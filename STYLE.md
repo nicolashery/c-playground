@@ -74,7 +74,7 @@
 - functions/variables/params: `snake_case`
 - typedef’d types/structs/enum types: `CamelCase`
 - enum constants: `UPPER_CASE`
-- macros: `UPPER_CASE`
+- macros: `UPPER_CASE` for constant/object-like, `snake_case` for function-like
 
 ## Types and declarations
 
