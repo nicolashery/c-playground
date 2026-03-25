@@ -8,5 +8,8 @@ target_include_directories(base PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_executable(test_arena test_arena.c)
-target_link_libraries(test_arena PRIVATE base)
+if(BUILD_TESTING)
+    add_executable(test_arena test_arena.c)
+    target_link_libraries(test_arena PRIVATE base unity)
+    add_test(NAME arena_tests COMMAND test_arena)
+endif()
