@@ -107,6 +107,8 @@ tasks:
     cmds:
       - cmake --build {{.BUILD_DIR}} --target test_arena
       - ./{{.BUILD_DIR}}/libs/base/test_arena
+      - cmake --build {{.BUILD_DIR}} --target test_strings
+      - ./{{.BUILD_DIR}}/libs/base/test_strings
 
   # --------------------------------------------------
   # Tools

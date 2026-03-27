@@ -1,5 +1,6 @@
 set(BASE_SOURCES
     arena.c
+    strings.c
 )
 
 add_library(base STATIC ${BASE_SOURCES})
@@ -12,4 +13,8 @@ if(BUILD_TESTING)
     add_executable(test_arena test_arena.c)
     target_link_libraries(test_arena PRIVATE base unity)
     add_test(NAME arena_tests COMMAND test_arena)
+
+    add_executable(test_strings test_strings.c)
+    target_link_libraries(test_strings PRIVATE base unity)
+    add_test(NAME strings_tests COMMAND test_strings)
 endif()
