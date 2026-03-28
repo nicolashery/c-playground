@@ -1,11 +1,20 @@
 #include "strings.h"
 
 #include <assert.h>
+#include <stdbool.h>
 #include <string.h>
+
+static String string_zero(void) {
+    return (String){0};
+}
+
+static bool string_is_zero(String str) {
+    return str.data == NULL;
+}
 
 String string_create(const char *cstr) {
     if (cstr == NULL) {
-        return (String){0};
+        return string_zero();
     }
 
     return (String){
@@ -23,11 +32,23 @@ String string_create_len(const char *data, size_t len) {
 
 String string_slice(String str, size_t start, size_t end) {
     assert(start <= end && "start should come before end");
-    assert(start < str.length && "start out of bounds");
+    assert((str.length == 0 || start < str.length) && "start out of bounds");
     assert(end <= str.length && "end out of bounds");
 
     return (String){
         .data = str.data + start,
         .length = end - start,
     };
+}
+
+bool string_equals(String a, String b) {
+    if (string_is_zero(a) || string_is_zero(b)) {
+        return string_is_zero(a) && string_is_zero(b);
+    }
+
+    if (a.length != b.length) {
+        return false;
+    }
+
+    return memcmp(a.data, b.data, a.length) == 0;
 }
