@@ -1,5 +1,7 @@
 #include "strings.h"
 
+#include "arena.h"
+
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
@@ -51,4 +53,15 @@ bool string_equals(String a, String b) {
     }
 
     return memcmp(a.data, b.data, a.length) == 0;
+}
+
+char *string_to_cstr(Arena *arena, String str) {
+    if (string_is_zero(str)) {
+        return NULL;
+    }
+
+    char *result = arena_push_array(arena, char, str.length + 1);
+    memcpy(result, str.data, str.length);
+    result[str.length] = '\0';
+    return result;
 }
