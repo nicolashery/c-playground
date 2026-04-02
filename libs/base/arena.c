@@ -51,6 +51,7 @@ static void *arena_alloc_impl(Arena *arena, size_t size, size_t alignment, bool 
 
     assert(is_power_of_two(alignment));
 
+    // Round offset up to the next multiple of alignment
     size_t aligned_offset = (arena->offset + alignment - 1) & ~(alignment - 1);
     size_t new_offset = aligned_offset + size;
     if (new_offset > arena->size) {

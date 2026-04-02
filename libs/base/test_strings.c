@@ -1,3 +1,4 @@
+#include "arena.h"
 #include "strings.h"
 #include "unity.h"
 
