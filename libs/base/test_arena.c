@@ -30,7 +30,7 @@ void test_alignment(void) {
     // new offset should be 4 (aligned offset) + 4 (bytes allocated)
     TEST_ASSERT_EQUAL_size_t(8, arena->offset);
     // and address should be 4-byte aligned
-    TEST_ASSERT_EQUAL_INT(0, (uintptr_t)p % 4);
+    TEST_ASSERT_EQUAL_size_t(0, (uintptr_t)p % 4);
     arena_free(arena);
 }
 
