@@ -11,7 +11,7 @@ static bool is_power_of_two(size_t alignment) {
 
 void pool_reset(Pool *pool) {
     PoolFreeNode *head = NULL;
-    for (size_t i = pool->block_count; i < pool->block_count; i++) {
+    for (size_t i = 0; i < pool->block_count; i++) {
         char *p = (char *)pool->memory + (i * pool->block_size);
         PoolFreeNode *node = (PoolFreeNode *)p;
         node->next = head;
@@ -52,4 +52,45 @@ Pool *pool_create_aligned(size_t block_size, size_t block_count, size_t block_al
     pool_reset(pool);
 
     return pool;
+}
+
+static void *pool_alloc_impl(Pool *pool, bool zero) {
+    if (pool->head == NULL) {
+        return NULL;
+    }
+
+    void *result = pool->head;
+    pool->head = pool->head->next;
+
+    if (zero) {
+        memset(result, 0, pool->block_size);
+    }
+
+    return result;
+}
+
+void *pool_alloc_no_zero(Pool *pool) {
+    return pool_alloc_impl(pool, false);
+}
+
+void *pool_alloc(Pool *pool) {
+    return pool_alloc_impl(pool, true);
+}
+
+void pool_free(Pool *pool, void *ptr) {
+    if (ptr == NULL) {
+        return;
+    }
+
+    void *pool_end = (char *)pool->memory + (pool->block_size * pool->block_count);
+    assert(pool->memory <= ptr && ptr < pool_end && "ptr failed pool memory bounds check");
+
+    // note that casting to (unsigned) size_t is safe here because we know ptr >= memory from
+    // previous assert (so we know ptrdiff_t is non-negative)
+    size_t relative_offset = (size_t)((char *)ptr - (char *)pool->memory);
+    assert((relative_offset % pool->block_size) == 0 && "ptr should point to start of a block");
+
+    PoolFreeNode *previous_head = pool->head;
+    pool->head = (PoolFreeNode *)ptr;
+    pool->head->next = previous_head;
 }

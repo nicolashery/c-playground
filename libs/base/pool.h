@@ -21,4 +21,10 @@ Pool *pool_create_aligned(size_t block_size, size_t block_count, size_t block_al
 
 #define pool_create(T, n) pool_create_aligned(sizeof(T), (n), _Alignof(T))
 
+void *pool_alloc_no_zero(Pool *pool);
+
+void *pool_alloc(Pool *pool);
+
+void pool_free(Pool *pool, void *ptr);
+
 #endif
