@@ -27,4 +27,6 @@ void *pool_alloc(Pool *pool);
 
 void pool_free(Pool *pool, void *ptr);
 
+void pool_destroy(Pool *pool);
+
 #endif

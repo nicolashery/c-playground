@@ -94,3 +94,12 @@ void pool_free(Pool *pool, void *ptr) {
     pool->head = (PoolFreeNode *)ptr;
     pool->head->next = previous_head;
 }
+
+void pool_destroy(Pool *pool) {
+    if (pool == NULL) {
+        return;
+    }
+
+    free(pool->memory);
+    free(pool);
+}
