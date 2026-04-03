@@ -11,7 +11,7 @@ Repo with multiple small projects as I play around with C and learn low-level pr
 - `scratch/`: Scratch project to try out various things that don't warrant their own project
 
 The `libs/` directory contains any shared libraries between projects:
-- `libs/math_utils/`: Example shared library, doesn't really do anything useful
+- `libs/base/`: Base utilities (arena and pool allocators, length-prefixed strings)
 
 ## Dependencies
 
