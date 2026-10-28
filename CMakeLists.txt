@@ -48,7 +48,7 @@ target_include_directories(stb SYSTEM INTERFACE ${stb_SOURCE_DIR})
 
 include(FetchContent)
 
-set(RAYLIB_VERSION 5.5) # 2024-11-18
+set(RAYLIB_VERSION 6.2) # 2026-10-15
 
 FetchContent_Declare(
     raylib
