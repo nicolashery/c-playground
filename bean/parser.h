@@ -1,10 +1,10 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include <stddef.h>
-
 #include "ledger.h"
 #include "scanner.h"
+
+#include <stddef.h>
 
 #define MAX_ERROR_MESSAGE_LENGTH 256
 #define MAX_NUMBER_LENGTH 16
