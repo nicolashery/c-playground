@@ -13,7 +13,7 @@ void setUp(void) {
 void tearDown(void) {
 }
 
-void test_basic_allocation(void) {
+static void test_basic_allocation(void) {
     Arena *arena = arena_create(64);
     int32_t *p = arena_push(arena, int32_t);
     *p = 42;
@@ -21,7 +21,7 @@ void test_basic_allocation(void) {
     arena_free(arena);
 }
 
-void test_alignment(void) {
+static void test_alignment(void) {
     Arena *arena = arena_create(64);
     // 1 byte (at offset 0)
     (void)arena_push(arena, char);
@@ -34,14 +34,14 @@ void test_alignment(void) {
     arena_free(arena);
 }
 
-void test_out_of_space(void) {
+static void test_out_of_space(void) {
     Arena *arena = arena_create(8);
     char *p = arena_push_array(arena, char, 16);
     TEST_ASSERT_EQUAL_PTR(NULL, p);
     arena_free(arena);
 }
 
-void test_reset(void) {
+static void test_reset(void) {
     Arena *arena = arena_create(64);
     int32_t *p1 = arena_push(arena, int32_t);
     arena_reset(arena);
@@ -55,7 +55,7 @@ typedef struct {
     bool likes_pets;
 } Person;
 
-void test_zero_initialization(void) {
+static void test_zero_initialization(void) {
     Arena *arena = arena_create(64);
     Person *p = arena_push(arena, Person);
     TEST_ASSERT_EQUAL_INT(0, p->age);
@@ -63,7 +63,7 @@ void test_zero_initialization(void) {
     arena_free(arena);
 }
 
-void test_temp_arena(void) {
+static void test_temp_arena(void) {
     Arena *arena = arena_create(64);
     arena_push(arena, int32_t);
     TEST_ASSERT_EQUAL_size_t(4, arena->offset);

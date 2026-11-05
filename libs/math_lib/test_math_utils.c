@@ -7,7 +7,7 @@ void setUp(void) {
 void tearDown(void) {
 }
 
-void test_add_float(void) {
+static void test_add_float(void) {
     float result1 = add_float(2.0F, 3.0F);
     TEST_ASSERT_EQUAL_FLOAT(5.0F, result1);
 
@@ -18,7 +18,7 @@ void test_add_float(void) {
     TEST_ASSERT_EQUAL_FLOAT(-5.0F, result3);
 }
 
-void test_distance_from_origin(void) {
+static void test_distance_from_origin(void) {
     Point2D point1 = {3.0F, 4.0F};
     float result1 = distance_from_origin(point1);
     TEST_ASSERT_EQUAL_FLOAT(5.0F, result1);

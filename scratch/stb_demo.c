@@ -12,7 +12,7 @@ typedef struct {
     int value;
 } IntHashMap;
 
-void demo_hash_map(void) {
+static void demo_hash_map(void) {
     IntHashMap *map = NULL;
     sh_new_arena(map);
 
@@ -27,7 +27,7 @@ void demo_hash_map(void) {
     shfree(map);
 }
 
-int stb_demo_main(void) {
+static int stb_demo_main(void) {
     double distance = distance_from_origin((Point2D){
         .x = 10,
         .y = 20,

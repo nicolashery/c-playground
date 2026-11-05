@@ -14,7 +14,7 @@ typedef struct {
     int y;
 } Point;
 
-void test_basic_allocation(void) {
+static void test_basic_allocation(void) {
     Pool *pool = pool_create(Point, 4);
     Point *p = pool_alloc(pool);
     p->x = 42;
@@ -22,7 +22,7 @@ void test_basic_allocation(void) {
     pool_destroy(pool);
 }
 
-void test_alignment(void) {
+static void test_alignment(void) {
     Pool *pool = pool_create_aligned(10, 4, 4);
     // requested size 10 and alignment 4
     // resulting block size should be 12 (nearest multiple of 4 above 10)
@@ -34,7 +34,7 @@ void test_alignment(void) {
     pool_destroy(pool);
 }
 
-void test_out_of_space(void) {
+static void test_out_of_space(void) {
     Pool *pool = pool_create(Point, 2);
     Point *p1 = pool_alloc(pool);
     Point *p2 = pool_alloc(pool);
@@ -45,7 +45,7 @@ void test_out_of_space(void) {
     pool_destroy(pool);
 }
 
-void test_reuse(void) {
+static void test_reuse(void) {
     Pool *pool = pool_create(Point, 2);
     Point *p1 = pool_alloc(pool);
     (void)pool_alloc(pool);
@@ -55,7 +55,7 @@ void test_reuse(void) {
     pool_destroy(pool);
 }
 
-void test_zero_initialization(void) {
+static void test_zero_initialization(void) {
     Pool *pool = pool_create(Point, 4);
     Point *p = pool_alloc(pool);
     TEST_ASSERT_EQUAL_INT32(0, p->x);
@@ -63,7 +63,7 @@ void test_zero_initialization(void) {
     pool_destroy(pool);
 }
 
-void test_reset(void) {
+static void test_reset(void) {
     Pool *pool = pool_create(Point, 2);
     (void)pool_alloc(pool);
     (void)pool_alloc(pool);

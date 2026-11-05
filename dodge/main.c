@@ -60,14 +60,14 @@ typedef struct {
     float collision_effect_timer;
 } GameState;
 
-void block_spawn(Block *block, Vector2 position) {
+static void block_spawn(Block *block, Vector2 position) {
     block->position = position;
     block->active = true;
     block->spawn_effect_active = true;
     block->spawn_effect_timer = SPAWN_EFFECT_DURATION;
 }
 
-void game_state_reset(GameState *state) {
+static void game_state_reset(GameState *state) {
     // Center at bottom of screen
     state->player.position = (Vector2){
         .x = (float)GetScreenWidth() / 2 - (float)PLAYER_WIDTH / 2,
@@ -100,7 +100,7 @@ void game_state_reset(GameState *state) {
     state->collision_effect_timer = 0.0F;
 }
 
-float clamp(float value, float min, float max) {
+static float clamp(float value, float min, float max) {
     if (value < min) {
         return min;
     }
@@ -112,7 +112,7 @@ float clamp(float value, float min, float max) {
     return value;
 }
 
-Rectangle player_bounds(Player *player) {
+static Rectangle player_bounds(Player *player) {
     return (Rectangle){
         .x = player->position.x,
         .y = player->position.y,
@@ -121,7 +121,7 @@ Rectangle player_bounds(Player *player) {
     };
 }
 
-Rectangle block_bounds(Block *block) {
+static Rectangle block_bounds(Block *block) {
     return (Rectangle){
         .x = block->position.x,
         .y = block->position.y,

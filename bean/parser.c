@@ -25,11 +25,11 @@ Parser parser_init(TokenArray *tokens, Ledger *ledger) {
     return parser;
 }
 
-Token *parser_peek(Parser *p) {
+static Token *parser_peek(Parser *p) {
     return &p->tokens->data[p->current];
 }
 
-Token *parser_lookahead(Parser *p) {
+static Token *parser_lookahead(Parser *p) {
     size_t next = p->current + 1;
     if (next >= p->tokens->size) {
         return &p->tokens->data[p->current];
@@ -38,7 +38,7 @@ Token *parser_lookahead(Parser *p) {
     return &p->tokens->data[next];
 }
 
-void parser_advance(Parser *p) {
+static void parser_advance(Parser *p) {
     size_t next = p->current + 1;
     if (next >= p->tokens->size) {
         return;
@@ -47,7 +47,7 @@ void parser_advance(Parser *p) {
     p->current = next;
 }
 
-Token *parser_match(Parser *p, TokenType token_type) {
+static Token *parser_match(Parser *p, TokenType token_type) {
     Token *t = parser_peek(p);
     if (t->type != token_type) {
         return NULL;
@@ -57,7 +57,7 @@ Token *parser_match(Parser *p, TokenType token_type) {
     return t;
 }
 
-Token *parser_expect(Parser *p, TokenType token_type) {
+static Token *parser_expect(Parser *p, TokenType token_type) {
     Token *t = parser_match(p, token_type);
     if (t == NULL) {
         Token *current = parser_peek(p);
@@ -74,7 +74,7 @@ Token *parser_expect(Parser *p, TokenType token_type) {
     return t;
 }
 
-Date parse_date(StringSlice text) {
+static Date parse_date(StringSlice text) {
     assert(text.len == 10 && "Date string must be of length 10");
 
     char buf[11];
@@ -92,7 +92,7 @@ Date parse_date(StringSlice text) {
     };
 }
 
-void parse_commodity_directive(Parser *p) {
+static void parse_commodity_directive(Parser *p) {
     Token *t;
 
     // Parse date
@@ -160,7 +160,7 @@ void parse_commodity_directive(Parser *p) {
     string_slice_array_push(l->currencies, currency);
 }
 
-void parse_open_directive(Parser *p) {
+static void parse_open_directive(Parser *p) {
     Token *t;
 
     // Parse date
@@ -243,7 +243,7 @@ void parse_open_directive(Parser *p) {
     account_array_push(l->accounts, account);
 }
 
-int find_account(AccountArray *accounts, StringSlice account_name) {
+static int find_account(AccountArray *accounts, StringSlice account_name) {
     int result = -1;
     for (size_t i = 0; i < accounts->size; i++) {
         if (slice_equals(accounts->data[i].name, account_name)) {
@@ -254,7 +254,7 @@ int find_account(AccountArray *accounts, StringSlice account_name) {
     return result;
 }
 
-int find_currency(StringSliceArray *currencies, StringSlice currency) {
+static int find_currency(StringSliceArray *currencies, StringSlice currency) {
     int result = -1;
     for (size_t i = 0; i < currencies->size; i++) {
         if (slice_equals(currencies->data[i], currency)) {
@@ -265,7 +265,7 @@ int find_currency(StringSliceArray *currencies, StringSlice currency) {
     return result;
 }
 
-long parse_amount_number(Parser *p, Token *t) {
+static long parse_amount_number(Parser *p, Token *t) {
     StringSlice text = t->text;
     assert(text.len < MAX_NUMBER_LENGTH && "Number string too long");
 
@@ -307,7 +307,7 @@ long parse_amount_number(Parser *p, Token *t) {
     return strtol(buf, NULL, 10);
 }
 
-bool parse_posting(Parser *p, Posting *posting) {
+static bool parse_posting(Parser *p, Posting *posting) {
     Token *t;
 
     t = parser_match(p, TOKEN_NEWLINE);
@@ -378,7 +378,7 @@ bool parse_posting(Parser *p, Posting *posting) {
     return !p->has_error;
 }
 
-void parse_transaction(Parser *p) {
+static void parse_transaction(Parser *p) {
     Token *t;
 
     // Parse date
@@ -478,7 +478,7 @@ void parse_transaction(Parser *p) {
     transaction_array_push(l->transactions, transaction);
 }
 
-void parser_print_error(Parser *p) {
+static void parser_print_error(Parser *p) {
     if (!p->has_error) {
         return;
     }
@@ -486,7 +486,7 @@ void parser_print_error(Parser *p) {
     printf("Parse error: %s (line %zu)\n", p->error_message, p->error_line);
 }
 
-void parse_next(Parser *p) {
+static void parse_next(Parser *p) {
     Token *t = parser_peek(p);
     if (t->type == TOKEN_EOF) {
         p->is_eof = true;

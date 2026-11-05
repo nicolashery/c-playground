@@ -10,13 +10,13 @@ void setUp(void) {
 void tearDown(void) {
 }
 
-void test_create(void) {
+static void test_create(void) {
     String str = string_create("hello");
 
     TEST_ASSERT_EQUAL_size_t(5, str.length);
 }
 
-void test_slice(void) {
+static void test_slice(void) {
     String str = string_create("hello world");
     String str_slice = string_slice(str, 6, str.length);
 
@@ -29,7 +29,7 @@ void test_slice(void) {
     TEST_ASSERT_EQUAL_size_t(0, str_slice.length);
 }
 
-void test_equals(void) {
+static void test_equals(void) {
     String str1 = string_create("hello");
     String str2 = string_create("hello");
     String str3 = string_create("world");
@@ -41,7 +41,7 @@ void test_equals(void) {
     TEST_ASSERT(string_equals(str_zero, str_zero));
 }
 
-void test_cstring(void) {
+static void test_cstring(void) {
     Arena *arena = arena_create(64);
     String str = string_create("hello");
     char *cstr = string_to_cstr(arena, str);

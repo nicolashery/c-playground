@@ -9,7 +9,7 @@ typedef struct {
     size_t capacity;
 } IntArray;
 
-IntArray *int_array_create(size_t capacity) {
+static IntArray *int_array_create(size_t capacity) {
     int *data = malloc(capacity * sizeof(int));
     if (data == NULL) {
         return NULL;
@@ -27,7 +27,7 @@ IntArray *int_array_create(size_t capacity) {
     return arr;
 }
 
-void int_array_append(IntArray *arr, int value) {
+static void int_array_append(IntArray *arr, int value) {
     if (arr->size < arr->capacity) {
         arr->data[arr->size] = value;
         arr->size++;
@@ -51,12 +51,12 @@ void int_array_append(IntArray *arr, int value) {
     arr->capacity = new_capacity;
 }
 
-void int_array_free(IntArray *arr) {
+static void int_array_free(IntArray *arr) {
     free(arr->data);
     free(arr);
 }
 
-int min(IntArray *arr) {
+static int min(IntArray *arr) {
     assert(arr->size > 0 && "Array must not be empty");
 
     int result = arr->data[0];
@@ -68,7 +68,7 @@ int min(IntArray *arr) {
     return result;
 }
 
-int max(IntArray *arr) {
+static int max(IntArray *arr) {
     assert(arr->size > 0 && "Array must not be empty");
 
     int result = arr->data[0];
@@ -80,7 +80,7 @@ int max(IntArray *arr) {
     return result;
 }
 
-double average(IntArray *arr) {
+static double average(IntArray *arr) {
     assert(arr->size > 0 && "Array must not be empty");
 
     int sum = 0;
@@ -91,7 +91,7 @@ double average(IntArray *arr) {
     return (sum / (double)arr->size);
 }
 
-int stats_main(int argc, char *argv[]) {
+static int stats_main(int argc, char *argv[]) {
     if (argc < 2) {
         printf("ERROR: Must provide a file name\n");
         return EXIT_FAILURE;

@@ -39,7 +39,7 @@ char *token_type_to_string(TokenType type) {
     }
 }
 
-void print_token(Token token) {
+static void print_token(Token token) {
     printf("%s", token_type_to_string(token.type));
 
     if (token.type == TOKEN_EOF) {
@@ -122,7 +122,7 @@ Scanner scanner_init(char *buffer) {
     };
 }
 
-void scanner_skip_whitespace(Scanner *s) {
+static void scanner_skip_whitespace(Scanner *s) {
     char c = *s->current;
 
     while (c != '\0') {
@@ -135,7 +135,7 @@ void scanner_skip_whitespace(Scanner *s) {
     }
 }
 
-void scanner_skip_comments(Scanner *s) {
+static void scanner_skip_comments(Scanner *s) {
     char c = *s->current;
 
     // Consume multiple lines of consecutive comments
@@ -164,7 +164,7 @@ void scanner_skip_comments(Scanner *s) {
     }
 }
 
-bool try_scan_date(Scanner *s, Token *t) {
+static bool try_scan_date(Scanner *s, Token *t) {
     const char *start = s->current;
     const char *peek = s->current;
 
@@ -218,7 +218,7 @@ bool try_scan_date(Scanner *s, Token *t) {
     return true;
 }
 
-bool try_scan_number(Scanner *s, Token *t) {
+static bool try_scan_number(Scanner *s, Token *t) {
     const char *start = s->current;
     const char *peek = s->current;
 

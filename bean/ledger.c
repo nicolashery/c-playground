@@ -250,7 +250,7 @@ void posting_array_push(PostingArray *arr, Posting value) {
     arr->capacity = new_capacity;
 }
 
-char *flag_to_string(Flag flag) {
+static char *flag_to_string(Flag flag) {
     switch (flag) {
     case FLAG_NONE:
         return "txn";
@@ -373,11 +373,11 @@ Ledger *ledger_create(void) {
 /* Printer                                                                      */
 /* ============================================================================ */
 
-void print_slice(StringSlice slice) {
+static void print_slice(StringSlice slice) {
     printf("%.*s", (int)slice.len, slice.start);
 }
 
-void print_amount(Amount amount, StringSliceArray *currencies) {
+static void print_amount(Amount amount, StringSliceArray *currencies) {
     long cents = amount.number;
     long dollars = cents / AMOUNT_DOLLAR_CENTS_RATIO;
     long remainder = llabs(cents % AMOUNT_DOLLAR_CENTS_RATIO);
@@ -386,7 +386,7 @@ void print_amount(Amount amount, StringSliceArray *currencies) {
     print_slice(currencies->data[amount.currency_index]);
 }
 
-void print_transaction(Ledger *l, Transaction *t) {
+static void print_transaction(Ledger *l, Transaction *t) {
     printf("Date: %d-%02d-%02d\n", t->date.year, t->date.month, t->date.day);
     printf("Flag: %s\n", flag_to_string(t->flag));
     printf("Payee: ");
@@ -528,7 +528,7 @@ Ledger *ledger_create_from_file(char *path) {
 /* Validation                                                                   */
 /* ============================================================================ */
 
-bool check_transactions_balanced(Ledger *l) {
+static bool check_transactions_balanced(Ledger *l) {
     bool pass = true;
     for (size_t i = 0; i < l->transactions->size; i++) {
         Transaction *t = &l->transactions->data[i];
@@ -548,7 +548,7 @@ bool check_transactions_balanced(Ledger *l) {
     return pass;
 }
 
-bool check_single_currency(Ledger *l) {
+static bool check_single_currency(Ledger *l) {
     size_t currency_count = l->currencies->size;
     if (currency_count > 1) {
         printf("Only a single currency per ledger is supported, got %zu\n\n", currency_count);
