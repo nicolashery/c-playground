@@ -16,7 +16,8 @@ tasks:
   configure:
     desc: Configure CMake build directory
     cmds:
-      - cmake -S . -B {{.BUILD_DIR}}
+      # Suppress CMake author warnings, including Raylib's macOS OpenGL deprecation notice
+      - cmake -Wno-author -S . -B {{.BUILD_DIR}}
       # clangd looks for compile_commands.json in root directory
       - ln -sf {{.BUILD_DIR}}/compile_commands.json ./compile_commands.json
 
