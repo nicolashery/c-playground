@@ -88,6 +88,7 @@ include(CTest)
 option(BUILD_BEAN "Build bean" ON)
 option(BUILD_SCRATCH "Build scratch" ON)
 option(BUILD_DODGE "Build dodge" ON)
+option(BUILD_PARTICLE "Build particle" ON)
 
 add_subdirectory(libs/math_lib)
 add_subdirectory(libs/base)
@@ -102,4 +103,8 @@ endif()
 
 if(BUILD_DODGE)
     add_subdirectory(dodge)
+endif()
+
+if(BUILD_PARTICLE)
+    add_subdirectory(particle)
 endif()

@@ -8,6 +8,7 @@ Repo with multiple small projects as I play around with C and learn low-level pr
 
 - `bean/`: Small CLI tool that parses a subset of [Beancount](https://github.com/beancount/beancount) plain-text accounting
 - `dodge/`: Dodge the Blocks game using Raylib
+- `particle`/: Interactive particle simulation using Raylib
 - `scratch/`: Scratch project to try out various things that don't warrant their own project
 
 The `libs/` directory contains any shared libraries between projects:

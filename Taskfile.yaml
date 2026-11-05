@@ -55,6 +55,11 @@ tasks:
     cmds:
       - cmake --build {{.BUILD_DIR}} --target dodge
 
+  build:particle:
+    desc: Build particle
+    cmds:
+      - cmake --build {{.BUILD_DIR}} --target particle
+
   # --------------------------------------------------
   # Run
   # --------------------------------------------------
@@ -78,6 +83,12 @@ tasks:
     deps: [build:dodge]
     cmds:
       - cd {{.BUILD_DIR}}/dodge && ./dodge
+
+  run:particle:
+    desc: Run Particle
+    deps: [build:particle]
+    cmds:
+      - cd {{.BUILD_DIR}}/particle && ./particle
 
   # --------------------------------------------------
   # Test
