@@ -11,6 +11,7 @@ Repo with multiple small projects as I play around with C and learn low-level pr
 - `scratch/`: Scratch project to try out various things that don't warrant their own project
 
 The `libs/` directory contains any shared libraries between projects:
+
 - `libs/base/`: Base utilities (arena and pool allocators, length-prefixed strings)
 
 ## Dependencies
@@ -37,6 +38,21 @@ echo 'export PATH="$(brew --prefix)/opt/llvm/bin:$PATH"' >> ~/.zshrc
 # for cmake to use newer version of compiler
 echo 'export CC=clang' >> ~/.zshrc
 echo 'export CXX=clang++' >> ~/.zshrc
+```
+
+The source code in this repository was last tested to build, lint, and pass tests with the following environment and toolchain (printed using `print_macos_env.sh`):
+
+```
+macOS                  26.7.2
+Architecture           arm64
+Clang                  23.1.4
+clang-tidy             23.1.4
+clang-format           23.1.4
+clangd                 23.1.4
+CMake                  4.4.4
+Command Line Tools     26.6.0.0.1781586589
+Apple ld               1267
+macOS SDK              26.5
 ```
 
 ## Development
