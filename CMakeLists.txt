@@ -52,6 +52,8 @@ set(RAYLIB_VERSION 6.2) # 2026-10-15
 
 FetchContent_Declare(
     raylib
+    # Treat dependency headers as system headers to suppress compiler and clang-tidy warnings
+    SYSTEM
     DOWNLOAD_EXTRACT_TIMESTAMP OFF
     URL https://github.com/raysan5/raylib/archive/refs/tags/${RAYLIB_VERSION}.tar.gz
     # Uncomment to use pre-built version installed via `brew install raylib`
@@ -69,6 +71,8 @@ endif()
 
 FetchContent_Declare(
     unity
+    # Treat dependency headers as system headers to suppress compiler and clang-tidy warnings
+    SYSTEM
     GIT_REPOSITORY https://github.com/ThrowTheSwitch/Unity.git
     GIT_TAG v2.6.0 # 2025-01-01
 )
@@ -99,5 +103,3 @@ endif()
 if(BUILD_DODGE)
     add_subdirectory(dodge)
 endif()
-
-
