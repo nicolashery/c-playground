@@ -28,7 +28,7 @@ On macOS:
 xcode-select --install # libc
 
 brew update
-brew install llvm # clang, clangd, lldb, clang-format, clang-tidy
+brew install llvm # clang, clangd, clang-format, clang-tidy
 brew install cmake # to generate compile_commands.json for clangd
 brew install go-task/tap/go-task # to run tasks in Taskfile.yaml
 
