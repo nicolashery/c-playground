@@ -455,10 +455,8 @@ Token scanner_next_token(Scanner *s) {
         if (try_scan_number(s, &t)) {
             return t;
         }
-    } else if (c == '-') {
-        if (try_scan_number(s, &t)) {
-            return t;
-        }
+    } else if (c == '-' && try_scan_number(s, &t)) {
+        return t;
     }
 
     t.type = TOKEN_INVALID;

@@ -115,7 +115,7 @@ int stats_main(int argc, char *argv[]) {
     int num;
     int count = 0;
     // No need to use `strtol` for this simple exercise
-    // NOLINTNEXTLINE(cert-err34-c)
+    // NOLINTNEXTLINE(bugprone-unchecked-string-to-number-conversion)
     while (fscanf(file, "%d", &num) == 1) {
         count++;
         int_array_append(arr, num);
