@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -25,10 +26,21 @@ Pool *pool_create_aligned(size_t block_size, size_t block_count, size_t block_al
     assert(block_size >= sizeof(PoolFreeNode) &&
            "block size must be large enough to hold free list node");
     assert(is_power_of_two(block_alignment));
+    // Starting address must be aligned as well
+    // malloc returns aligned pointer for types with fundamental alignment
+    // Keep simple: stick with malloc and impose fundamental alignment requirements only
+    assert(block_alignment <= _Alignof(max_align_t) &&
+           "pool does not support extended alignment requirements");
 
     Pool *pool = malloc(sizeof(Pool));
     if (pool == NULL) {
         return NULL;
+    }
+
+    // Block alignment needs to take into account free node alignment as well
+    // Since both are powers of 2, can use the max
+    if (block_alignment < _Alignof(PoolFreeNode)) {
+        block_alignment = _Alignof(PoolFreeNode);
     }
 
     // Round block size up to the next multiple of block alignment

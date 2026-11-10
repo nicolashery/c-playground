@@ -24,13 +24,18 @@ static void test_basic_allocation(void) {
 
 static void test_alignment(void) {
     Pool *pool = pool_create_aligned(10, 4, 4);
-    // requested size 10 and alignment 4
-    // resulting block size should be 12 (nearest multiple of 4 above 10)
-    TEST_ASSERT_EQUAL_size_t(12, pool->block_size);
-    (void)pool_alloc(pool);
-    void *p2 = pool_alloc(pool);
-    // addresses should be 4-byte aligned
-    TEST_ASSERT_EQUAL_size_t(0, (uintptr_t)p2 % 4);
+
+    // resulting block size should be at least 10
+    TEST_ASSERT_GREATER_OR_EQUAL_size_t(10, pool->block_size);
+
+    for (size_t i = 0; i < pool->block_count; i++) {
+        void *p = pool_alloc(pool);
+        // addresses should be 4-byte aligned
+        TEST_ASSERT_EQUAL_size_t(0, (uintptr_t)p % 4);
+        // addresses should be aligned for free node as well
+        TEST_ASSERT_EQUAL_size_t(0, (uintptr_t)p % _Alignof(PoolFreeNode));
+    }
+
     pool_destroy(pool);
 }
 
