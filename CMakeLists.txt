@@ -26,6 +26,8 @@ add_compile_options(
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_options(-O0 -g)
     add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+    # Make UBSan diagnostics fail tests instead of continuing with exit status 0.
+    add_compile_options(-fno-sanitize-recover=undefined)
     add_link_options(-fsanitize=address,undefined)
 endif()
 
