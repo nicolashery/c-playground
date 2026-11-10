@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -43,8 +44,14 @@ Pool *pool_create_aligned(size_t block_size, size_t block_count, size_t block_al
         block_alignment = _Alignof(PoolFreeNode);
     }
 
+    // Make sure block size doesn't overflow alignment calculation
+    if (block_size > SIZE_MAX - block_alignment + 1) {
+        free(pool);
+        return NULL;
+    }
+
     // Round block size up to the next multiple of block alignment
-    size_t aligned_block_size = (block_size + block_alignment - 1) & ~(block_alignment - 1);
+    size_t aligned_block_size = (block_size + (block_alignment - 1)) & ~(block_alignment - 1);
     pool->block_size = aligned_block_size;
 
     if (block_count == 0) {
@@ -53,6 +60,11 @@ Pool *pool_create_aligned(size_t block_size, size_t block_count, size_t block_al
     }
     pool->block_count = block_count;
 
+    // Make sure multiplication by count doesn't overflow malloc size
+    if (pool->block_count > SIZE_MAX / pool->block_size) {
+        free(pool);
+        return NULL;
+    }
     void *memory = malloc(pool->block_size * pool->block_count);
     if (memory == NULL) {
         free(pool);
