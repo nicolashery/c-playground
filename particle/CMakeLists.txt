@@ -4,6 +4,10 @@ set(PARTICLE_SOURCES
 
 add_executable(particle ${PARTICLE_SOURCES})
 
+# Internal libs
+target_link_libraries(particle PRIVATE base)
+
+# External libs
 target_link_libraries(particle PRIVATE raylib)
 
 # Raylib: link appropriate frameworks on macOS
