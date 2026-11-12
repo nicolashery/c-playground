@@ -18,10 +18,12 @@
 
 #define PARTICLE_RADIUS 10.0F         // pixels
 #define PARTICLE_INITIAL_SPEED 150.0F // pixels per second
+#define PARTICLE_LIFETIME 5.0F        // seconds
 
 typedef struct {
     Vector2 velocity;
     Vector2 position;
+    float age; // in seconds
 } Particle;
 
 typedef struct {
@@ -42,6 +44,7 @@ static void particle_reset(Particle *particle) {
         .x = (float)GetMouseX(),
         .y = (float)GetMouseY(),
     };
+    particle->age = 0;
 }
 
 static void simulation_state_reset(SimulationState *state) {
@@ -76,10 +79,40 @@ static void particles_move(SimulationState *state) {
     for (size_t i = 0; i < state->particle_count; i++) {
         Particle *particle = state->particles[i];
 
-        // Semi-implicit Euler (update velocity before position)
+        // Move
+        // Use semi-implicit Euler (update velocity before position)
         particle->velocity =
             Vector2Add(particle->velocity, Vector2Scale(particle_acceleration, dt));
         particle->position = Vector2Add(particle->position, Vector2Scale(particle->velocity, dt));
+    }
+}
+
+static void particles_age(SimulationState *state) {
+    float dt = GetFrameTime();
+
+    size_t i = 0;
+    // age, expire, and compact array in single loop
+    while (i < state->particle_count) {
+        Particle *particle = state->particles[i];
+
+        particle->age += dt;
+
+        // Expiry
+        if (particle->age >= PARTICLE_LIFETIME) {
+            pool_free(state->pool, particle);
+
+            // Compact array using swap removal:
+            // till expired entry with last entry (except if expired is already last)
+            // and decrement count
+            if (i != state->particle_count - 1) {
+                Particle *last = state->particles[state->particle_count - 1];
+                state->particles[i] = last;
+            }
+            state->particle_count--;
+            // Process same index again since we swapped it (i.e. don't increment it)
+        } else {
+            i++;
+        }
     }
 }
 
@@ -111,6 +144,7 @@ int main(void) {
     while (!WindowShouldClose()) {
         // Update
         //-----------------------------------------------------------------------------------------
+        particles_age(&state);
         particles_move(&state);
 
         // Spawn after move so first appears right under the mouse
