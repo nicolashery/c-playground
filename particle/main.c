@@ -1,7 +1,9 @@
 #include "pool.h"
 #include "raylib.h"
 
+#include <assert.h>
 #include <raymath.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -25,6 +27,7 @@ typedef struct {
 typedef struct {
     Pool *pool;
     Particle *particles[MAX_PARTICLES];
+    size_t particle_count;
 } SimulationState;
 
 static void particle_reset(Particle *particle) {
@@ -43,26 +46,23 @@ static void particle_reset(Particle *particle) {
 
 static void simulation_state_reset(SimulationState *state) {
     pool_reset(state->pool);
-    for (int i = 0; i < MAX_PARTICLES; i++) {
-        state->particles[i] = NULL;
-    }
+    state->particle_count = 0;
 }
 
 static void particles_spawn(SimulationState *state) {
-    for (int i = 0; i < MAX_PARTICLES; i++) {
-        if (state->particles[i] != NULL) {
-            continue;
-        }
-
-        Particle *particle = pool_alloc(state->pool);
-        if (particle == NULL) {
-            break;
-        }
-
-        particle_reset(particle);
-        state->particles[i] = particle;
-        break;
+    // Handle capacity exhaustion gracefully: don't render any more particles
+    if (state->particle_count >= MAX_PARTICLES) {
+        return;
     }
+
+    size_t i = state->particle_count;
+
+    Particle *particle = pool_alloc(state->pool);
+    assert(particle != NULL && "expected particle pool to have free slots");
+
+    particle_reset(particle);
+    state->particles[i] = particle;
+    state->particle_count++;
 }
 
 static void particles_move(SimulationState *state) {
@@ -73,11 +73,8 @@ static void particles_move(SimulationState *state) {
         .y = GRAVITY_ACCELERATION,
     };
 
-    for (int i = 0; i < MAX_PARTICLES; i++) {
+    for (size_t i = 0; i < state->particle_count; i++) {
         Particle *particle = state->particles[i];
-        if (particle == NULL) {
-            continue;
-        }
 
         // Semi-implicit Euler (update velocity before position)
         particle->velocity =
@@ -87,11 +84,8 @@ static void particles_move(SimulationState *state) {
 }
 
 static void particles_draw(SimulationState *state) {
-    for (int i = 0; i < MAX_PARTICLES; i++) {
+    for (size_t i = 0; i < state->particle_count; i++) {
         Particle *particle = state->particles[i];
-        if (particle == NULL) {
-            continue;
-        }
 
         DrawCircleV(particle->position, PARTICLE_RADIUS, DARKGREEN);
     }
