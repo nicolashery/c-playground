@@ -13,8 +13,13 @@
 
 #define TEXT_BUFFER_LENGTH 1024
 
-// #define MAX_PARTICLES 500
-#define MAX_PARTICLES 10 // for debugging
+// Note: Can calculate approximate particle count when continuously holding
+// mouse button down using particle lifetime (L) particle emission interval (E)
+// N(T) = T/E                    for 0 ≤ T < L
+// N(T) = T/E − (T − L)/E = L/E  for T ≥ L
+// (where T is seconds since emission began)
+#define MAX_PARTICLES 500
+// #define MAX_PARTICLES 10 // for debugging
 
 #define GRAVITY_ACCELERATION 50.0F // pixels per second^2
 // i have no idea what to put here haha
@@ -22,7 +27,7 @@
 #define PARTICLE_RADIUS 10.0F           // pixels
 #define PARTICLE_INITIAL_SPEED 150.0F   // pixels per second
 #define PARTICLE_LIFETIME 5.0F          // seconds
-#define PARTICLE_EMISSION_INTERVAL 0.2F // seconds
+#define PARTICLE_EMISSION_INTERVAL 0.1F // seconds
 
 typedef struct {
     Vector2 velocity;
@@ -37,14 +42,20 @@ typedef struct {
     float particle_emission_timer; // count down, may cross zero
 } SimulationState;
 
-static void particle_reset(Particle *particle) {
-    // initial velocity (direction will be randomized later)
+static void particle_init(Particle *particle) {
+    // Initial velocity: random vector direction in "top half-circle"
+    int x = GetRandomValue(-100, 100);
+    int y = GetRandomValue(-100, 100);
+    // Handle edge case of (0, 0), launch straight up instead
+    if (x == 0 && y == 0) {
+        y = -1;
+    }
     particle->velocity = Vector2Scale(Vector2Normalize((Vector2){
-                                          .x = 1,
-                                          .y = -1,
+                                          .x = (float)x,
+                                          .y = (float)y,
                                       }),
                                       PARTICLE_INITIAL_SPEED);
-    // initial position: mouse click location
+    // Initial position: mouse click location
     particle->position = (Vector2){
         .x = (float)GetMouseX(),
         .y = (float)GetMouseY(),
@@ -69,7 +80,7 @@ static bool particles_spawn(SimulationState *state) {
     Particle *particle = pool_alloc(state->pool);
     assert(particle != NULL && "expected particle pool to have free slots");
 
-    particle_reset(particle);
+    particle_init(particle);
     state->particles[i] = particle;
     state->particle_count++;
 
@@ -172,6 +183,9 @@ int main(void) {
         return EXIT_FAILURE;
     }
     state.pool = pool;
+
+    // For debugging
+    SetRandomSeed(123456);
 
     while (!WindowShouldClose()) {
         // Update
