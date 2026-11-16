@@ -1,8 +1,9 @@
 #include "pool.h"
 #include "raylib.h"
+#include "raymath.h"
 
 #include <assert.h>
-#include <raymath.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -44,17 +45,14 @@ typedef struct {
 
 static void particle_init(Particle *particle) {
     // Initial velocity: random vector direction in "top half-circle"
-    int x = GetRandomValue(-100, 100);
-    int y = GetRandomValue(-100, 100);
-    // Handle edge case of (0, 0), launch straight up instead
-    if (x == 0 && y == 0) {
-        y = -1;
-    }
-    particle->velocity = Vector2Scale(Vector2Normalize((Vector2){
-                                          .x = (float)x,
-                                          .y = (float)y,
-                                      }),
-                                      PARTICLE_INITIAL_SPEED);
+    float u = (float)GetRandomValue(0, 100) / 100;
+    float angle = PI * (1 + u);
+    particle->velocity = Vector2Scale(
+        (Vector2){
+            .x = cosf(angle),
+            .y = sinf(angle),
+        },
+        PARTICLE_INITIAL_SPEED);
     // Initial position: mouse click location
     particle->position = (Vector2){
         .x = (float)GetMouseX(),
