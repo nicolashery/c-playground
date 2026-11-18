@@ -29,6 +29,7 @@
 #define PARTICLE_LIFETIME 10.0F         // seconds
 #define PARTICLE_EMISSION_INTERVAL 0.1F // seconds
 #define PARTICLE_BOUNCINESS 0.5F        // coefficient of restitution
+#define PARTICLE_FADE_START 0.7F        // fraction of lifetime
 
 typedef struct {
     Color color;
@@ -214,7 +215,11 @@ static void particles_draw(SimulationState *state) {
     for (size_t i = 0; i < state->particle_count; i++) {
         Particle *particle = state->particles[i];
 
-        DrawCircleV(particle->position, PARTICLE_RADIUS, particle->color);
+        float opacity = 1 - (particle->age - PARTICLE_FADE_START * PARTICLE_LIFETIME) /
+                                (PARTICLE_LIFETIME - PARTICLE_FADE_START * PARTICLE_LIFETIME);
+        opacity = Clamp(opacity, 0, 1);
+
+        DrawCircleV(particle->position, PARTICLE_RADIUS, Fade(particle->color, opacity));
     }
 }
 
