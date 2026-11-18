@@ -1,6 +1,7 @@
 #include "pool.h"
 #include "unity.h"
 
+#include <stddef.h>
 #include <stdint.h>
 
 void setUp(void) {
