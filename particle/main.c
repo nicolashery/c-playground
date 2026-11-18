@@ -39,6 +39,7 @@ typedef struct {
 } Particle;
 
 typedef struct {
+    bool paused;
     Pool *pool;
     Particle *particles[MAX_PARTICLES];
     size_t particle_count;
@@ -94,6 +95,7 @@ static void particle_init(Particle *particle) {
 }
 
 static void simulation_state_reset(SimulationState *state) {
+    state->paused = false;
     pool_reset(state->pool);
     state->particle_count = 0;
     state->particle_emission_timer = 0;
@@ -236,6 +238,12 @@ static void capacity_draw(SimulationState *state) {
              VIOLET);
 }
 
+static void controls_draw(void) {
+    const char *controls_text = "[R] Reset [P] Pause [Esc] Quit";
+    int font_size = 20;
+    DrawText(controls_text, 20, GetScreenHeight() - font_size - 20, font_size, VIOLET);
+}
+
 int main(void) {
     // Initialization
     //---------------------------------------------------------------------------------------------
@@ -259,33 +267,39 @@ int main(void) {
     while (!WindowShouldClose()) {
         // Update
         //-----------------------------------------------------------------------------------------
-        particles_age(&state);
-        particles_move(&state);
-        particles_update_emission(&state);
-
-        // Spawn after move so first appears right under the mouse
-        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-            bool particle_spawned = particles_spawn(&state);
-            if (particle_spawned) {
-                // Reset timer to full interval in the case of a single click
-                // (instead of adding interval like emission path)
-                state.particle_emission_timer = PARTICLE_EMISSION_INTERVAL;
-            }
-        } else if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) && particles_is_emission_due(&state)) {
-            bool particle_spawned = particles_spawn(&state);
-            if (particle_spawned) {
-                // Timer may have some "leftover" and be negative,
-                // add interval to timer instead of resetting it
-                // so continuous spawning still feels smooth
-                state.particle_emission_timer += PARTICLE_EMISSION_INTERVAL;
-            }
+        if (IsKeyPressed(KEY_P)) {
+            state.paused = !state.paused;
         }
-
-        // Check boundaries after spawning to ensure new particles stay inside
-        particles_boundary_collision(&state);
 
         if (IsKeyPressed(KEY_R)) {
             simulation_state_reset(&state);
+        }
+
+        if (!state.paused) {
+            particles_age(&state);
+            particles_move(&state);
+            particles_update_emission(&state);
+
+            // Spawn after move so first appears right under the mouse
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                bool particle_spawned = particles_spawn(&state);
+                if (particle_spawned) {
+                    // Reset timer to full interval in the case of a single click
+                    // (instead of adding interval like emission path)
+                    state.particle_emission_timer = PARTICLE_EMISSION_INTERVAL;
+                }
+            } else if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) && particles_is_emission_due(&state)) {
+                bool particle_spawned = particles_spawn(&state);
+                if (particle_spawned) {
+                    // Timer may have some "leftover" and be negative,
+                    // add interval to timer instead of resetting it
+                    // so continuous spawning still feels smooth
+                    state.particle_emission_timer += PARTICLE_EMISSION_INTERVAL;
+                }
+            }
+
+            // Check boundaries after spawning to ensure new particles stay inside
+            particles_boundary_collision(&state);
         }
         // Draw
         //-----------------------------------------------------------------------------------------
@@ -295,6 +309,7 @@ int main(void) {
 
         particles_draw(&state);
         capacity_draw(&state);
+        controls_draw();
         DrawFPS(GetScreenWidth() - 100, 20);
 
         EndDrawing();
