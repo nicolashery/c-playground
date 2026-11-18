@@ -28,6 +28,7 @@
 #define PARTICLE_INITIAL_SPEED 150.0F   // pixels per second
 #define PARTICLE_LIFETIME 10.0F         // seconds
 #define PARTICLE_EMISSION_INTERVAL 0.1F // seconds
+#define PARTICLE_BOUNCINESS 0.5F        // coefficient of restitution
 
 typedef struct {
     Color color;
@@ -174,6 +175,41 @@ static void particles_age(SimulationState *state) {
     }
 }
 
+static void particles_boundary_collision(SimulationState *state) {
+    for (size_t i = 0; i < state->particle_count; i++) {
+        Particle *particle = state->particles[i];
+
+        // Ceiling bounce
+        // Check position crosses boundary as well as if velocity is facing outwards from boundaries
+        if (particle->position.y - PARTICLE_RADIUS <= 0 && particle->velocity.y < 0) {
+            particle->velocity.y = -(PARTICLE_BOUNCINESS * particle->velocity.y);
+        }
+
+        // Right wall bounce
+        if (particle->position.x + PARTICLE_RADIUS >= (float)GetScreenWidth() &&
+            particle->velocity.x > 0) {
+            particle->velocity.x = -(PARTICLE_BOUNCINESS * particle->velocity.x);
+        }
+
+        // Floor bounce
+        if (particle->position.y + PARTICLE_RADIUS >= (float)GetScreenHeight() &&
+            particle->velocity.y > 0) {
+            particle->velocity.y = -(PARTICLE_BOUNCINESS * particle->velocity.y);
+        }
+
+        // Left wall bounce
+        if (particle->position.x - PARTICLE_RADIUS <= 0 && particle->velocity.x < 0) {
+            particle->velocity.x = -(PARTICLE_BOUNCINESS * particle->velocity.x);
+        }
+
+        // Stay inside boundaries
+        particle->position.x =
+            Clamp(particle->position.x, PARTICLE_RADIUS, (float)GetScreenWidth() - PARTICLE_RADIUS);
+        particle->position.y = Clamp(
+            particle->position.y, PARTICLE_RADIUS, (float)GetScreenHeight() - PARTICLE_RADIUS);
+    }
+}
+
 static void particles_draw(SimulationState *state) {
     for (size_t i = 0; i < state->particle_count; i++) {
         Particle *particle = state->particles[i];
@@ -239,6 +275,9 @@ int main(void) {
                 state.particle_emission_timer += PARTICLE_EMISSION_INTERVAL;
             }
         }
+
+        // Check boundaries after spawning to ensure new particles stay inside
+        particles_boundary_collision(&state);
 
         if (IsKeyPressed(KEY_R)) {
             simulation_state_reset(&state);
