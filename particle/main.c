@@ -23,14 +23,14 @@
 // #define MAX_PARTICLES 10 // for debugging
 
 #define GRAVITY_ACCELERATION 50.0F // pixels per second^2
-// i have no idea what to put here haha
 
 #define PARTICLE_RADIUS 10.0F           // pixels
 #define PARTICLE_INITIAL_SPEED 150.0F   // pixels per second
-#define PARTICLE_LIFETIME 5.0F          // seconds
+#define PARTICLE_LIFETIME 10.0F         // seconds
 #define PARTICLE_EMISSION_INTERVAL 0.1F // seconds
 
 typedef struct {
+    Color color;
     Vector2 velocity;
     Vector2 position;
     float age; // seconds, count up
@@ -43,7 +43,37 @@ typedef struct {
     float particle_emission_timer; // count down, may cross zero
 } SimulationState;
 
+static const Color particle_colors[] = {
+    YELLOW,
+    GOLD,
+    ORANGE,
+    PINK,
+    RED,
+    MAROON,
+    GREEN,
+    LIME,
+    DARKGREEN,
+    SKYBLUE,
+    BLUE,
+    DARKBLUE,
+    PURPLE,
+    VIOLET,
+    DARKPURPLE,
+    BEIGE,
+    BROWN,
+    DARKBROWN,
+};
+
+static Color particle_pick_color(void) {
+    size_t colors_count = sizeof(particle_colors) / sizeof(Color);
+    int i = GetRandomValue(0, (int)colors_count - 1);
+    return particle_colors[i];
+}
+
 static void particle_init(Particle *particle) {
+    // Random color
+    particle->color = particle_pick_color();
+
     // Initial velocity: random vector direction in "top half-circle"
     float u = (float)GetRandomValue(0, 100) / 100;
     float angle = PI * (1 + u);
@@ -148,7 +178,7 @@ static void particles_draw(SimulationState *state) {
     for (size_t i = 0; i < state->particle_count; i++) {
         Particle *particle = state->particles[i];
 
-        DrawCircleV(particle->position, PARTICLE_RADIUS, DARKGREEN);
+        DrawCircleV(particle->position, PARTICLE_RADIUS, particle->color);
     }
 }
 
